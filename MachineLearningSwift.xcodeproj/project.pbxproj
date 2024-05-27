@@ -10,6 +10,7 @@
 		1138E16E2C0528260008BE23 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E16D2C0528260008BE23 /* main.swift */; };
 		1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1742C0528CD0008BE23 /* LogisticRegression.swift */; };
 		1138E1772C0529BF0008BE23 /* NeuralNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1762C0529BF0008BE23 /* NeuralNetwork.swift */; };
+		1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1782C052C7A0008BE23 /* KNearestNeighbors.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,6 +30,7 @@
 		1138E16D2C0528260008BE23 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		1138E1742C0528CD0008BE23 /* LogisticRegression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogisticRegression.swift; sourceTree = "<group>"; };
 		1138E1762C0529BF0008BE23 /* NeuralNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralNetwork.swift; sourceTree = "<group>"; };
+		1138E1782C052C7A0008BE23 /* KNearestNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KNearestNeighbors.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +66,7 @@
 				1138E16D2C0528260008BE23 /* main.swift */,
 				1138E1742C0528CD0008BE23 /* LogisticRegression.swift */,
 				1138E1762C0529BF0008BE23 /* NeuralNetwork.swift */,
+				1138E1782C052C7A0008BE23 /* KNearestNeighbors.swift */,
 			);
 			path = MachineLearningSwift;
 			sourceTree = "<group>";
@@ -126,6 +129,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */,
 				1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */,
 				1138E16E2C0528260008BE23 /* main.swift in Sources */,
 				1138E1772C0529BF0008BE23 /* NeuralNetwork.swift in Sources */,
