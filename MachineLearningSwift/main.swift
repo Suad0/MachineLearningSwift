@@ -54,7 +54,45 @@ func test_KNN(){
     print(predictions) // Expected output: [0, 1]
 }
 
-test_KNN()
+func testDecisionTree(){
+    
+    let decisionTree = DecisionTree(maxDepth: 3)
+    
+    // Example training data
+    let X_train: [[Double]] = [
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [4, 5],
+        [5, 6],
+        [6, 7],
+        [7, 8],
+        [8, 9]
+    ]
+    
+    let y_train = [0, 0, 1, 1, 0, 1, 0, 1]
+    
+    decisionTree.train(X_train: X_train, y_train: y_train)
+    
+    let X_test: [[Double]] = [
+        [1, 2],
+        [5, 6],
+        [8, 9]
+    ]
+    
+    // Make predictions on test instances
+    for instance in X_test {
+        let prediction = decisionTree.predict(instance: instance)
+        print("Prediction for \(instance): \(prediction)")
+    }
+    
+    
+    
+}
+
+testDecisionTree()
+
+
 
 
 
