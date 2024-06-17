@@ -90,7 +90,31 @@ func testDecisionTree(){
     
 }
 
-testDecisionTree()
+func testMPSNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int) {
+    
+    let neuralNetwork = MPSNeuralNetwork(inputSize: inputSize, hiddenSize: hiddenSize, outputSize: outputSize)
+    
+    let inputs: [[Float]] = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]
+    let targets: [[Float]] = [[0.0], [1.0], [1.0], [0.0]]
+    
+    // Train the neural network
+    let epochs = 10000
+    let learningRate: Float = 0.1
+    neuralNetwork.train(inputs, targets, epochs: epochs, learningRate: learningRate)
+    
+    // Test the neural network
+    print("Testing neural network predictions:")
+    for input in inputs {
+        let predicted = neuralNetwork.predict(input)
+        print("Input: \(input) => Predicted: \(predicted)")
+    }
+}
+
+testMPSNeuralNetwork(inputSize: 2, hiddenSize: 2, outputSize: 1)
+
+
+
+
 
 
 
