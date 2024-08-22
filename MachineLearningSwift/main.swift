@@ -110,8 +110,23 @@ func testMPSNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int) {
     }
 }
 
-testMPSNeuralNetwork(inputSize: 2, hiddenSize: 2, outputSize: 1)
+func vectorStoreTest(){
+    
+    let docs = [
+            "I like apples",
+            "I like pears",
+            "I like dogs",
+            "I like cats"
+        ]
 
+        var vs = VectorStore(documents: docs)
+
+        print(vs.getTopN(query: "I like apples", n: 1))
+        print(vs.getTopN(query: "fruit", n: 2))
+    
+}
+
+vectorStoreTest()
 
 
 

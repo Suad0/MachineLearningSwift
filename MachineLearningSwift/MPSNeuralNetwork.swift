@@ -92,13 +92,16 @@ class MPSNeuralNetwork {
     private func calculateHiddenLayerOutput(_ inputBuffer: MTLBuffer) -> MTLBuffer {
         let hiddenLayerOutputBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
         
-        // Perform matrix multiplication and add bias
-        let descriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride * hiddenSize, dataType: .float32)
-        let inputMatrix = MPSMatrix(buffer: inputBuffer, descriptor: descriptor)
-        let weightsMatrix = MPSMatrix(buffer: weightsInputHidden, descriptor: descriptor)
-        let outputMatrix = MPSMatrix(buffer: hiddenLayerOutputBuffer, descriptor: descriptor)
+        // Correct matrix descriptors
+        let inputDescriptor = MPSMatrixDescriptor(rows: inputSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        let weightsDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: inputSize, rowBytes: inputSize * MemoryLayout<Float>.stride, dataType: .float32)
+        let outputDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
         
-        let multiplication = MPSMatrixMultiplication(device: device, transposeLeft: false, transposeRight: false, resultRows: hiddenSize, resultColumns: 1, interiorColumns: inputSize, alpha: 1.0, beta: 1.0)
+        let inputMatrix = MPSMatrix(buffer: inputBuffer, descriptor: inputDescriptor)
+        let weightsMatrix = MPSMatrix(buffer: weightsInputHidden, descriptor: weightsDescriptor)
+        let outputMatrix = MPSMatrix(buffer: hiddenLayerOutputBuffer, descriptor: outputDescriptor)
+        
+        let multiplication = MPSMatrixMultiplication(device: device, transposeLeft: false, transposeRight: false, resultRows: hiddenSize, resultColumns: 1, interiorColumns: inputSize, alpha: 1.0, beta: 0.0)
         let commandBuffer = commandQueue.makeCommandBuffer()!
         multiplication.encode(commandBuffer: commandBuffer, leftMatrix: weightsMatrix, rightMatrix: inputMatrix, resultMatrix: outputMatrix)
         commandBuffer.commit()
@@ -110,13 +113,16 @@ class MPSNeuralNetwork {
     private func calculateOutput(_ hiddenLayerOutputBuffer: MTLBuffer) -> MTLBuffer {
         let outputBuffer = device.makeBuffer(length: outputSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
         
-        // Perform matrix multiplication and add bias
-        let descriptor = MPSMatrixDescriptor(rows: outputSize, columns: 1, rowBytes: MemoryLayout<Float>.stride * outputSize, dataType: .float32)
-        let hiddenMatrix = MPSMatrix(buffer: hiddenLayerOutputBuffer, descriptor: descriptor)
-        let weightsMatrix = MPSMatrix(buffer: weightsHiddenOutput, descriptor: descriptor)
-        let outputMatrix = MPSMatrix(buffer: outputBuffer, descriptor: descriptor)
+        // Correct matrix descriptors
+        let hiddenDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        let weightsDescriptor = MPSMatrixDescriptor(rows: outputSize, columns: hiddenSize, rowBytes: hiddenSize * MemoryLayout<Float>.stride, dataType: .float32)
+        let outputDescriptor = MPSMatrixDescriptor(rows: outputSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
         
-        let multiplication = MPSMatrixMultiplication(device: device, transposeLeft: false, transposeRight: false, resultRows: outputSize, resultColumns: 1, interiorColumns: hiddenSize, alpha: 1.0, beta: 1.0)
+        let hiddenMatrix = MPSMatrix(buffer: hiddenLayerOutputBuffer, descriptor: hiddenDescriptor)
+        let weightsMatrix = MPSMatrix(buffer: weightsHiddenOutput, descriptor: weightsDescriptor)
+        let outputMatrix = MPSMatrix(buffer: outputBuffer, descriptor: outputDescriptor)
+        
+        let multiplication = MPSMatrixMultiplication(device: device, transposeLeft: false, transposeRight: false, resultRows: outputSize, resultColumns: 1, interiorColumns: hiddenSize, alpha: 1.0, beta: 0.0)
         let commandBuffer = commandQueue.makeCommandBuffer()!
         multiplication.encode(commandBuffer: commandBuffer, leftMatrix: weightsMatrix, rightMatrix: hiddenMatrix, resultMatrix: outputMatrix)
         commandBuffer.commit()
@@ -124,6 +130,7 @@ class MPSNeuralNetwork {
         
         return outputBuffer
     }
+    
     
     public func train(_ inputs: [[Float]], _ targets: [[Float]], epochs: Int, learningRate: Float) {
         for _ in 0..<epochs {
