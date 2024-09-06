@@ -130,7 +130,7 @@ func testMPSNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int) {
     }
 }
 
-testMPSNeuralNetwork(inputSize: 10, hiddenSize: 10, outputSize: 10)
+testMPSNeuralNetwork(inputSize: 2, hiddenSize: 4, outputSize: 1)
 
 
 

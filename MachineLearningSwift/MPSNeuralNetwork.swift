@@ -12,22 +12,28 @@ import MetalPerformanceShaders
 
 
 // Custom split function for MPSMatrix
-extension MPSMatrix {
-    func split(into chunkSize: Int, buffer: MTLBuffer) -> [[MPSMatrix]] {
-        let numChunks = (rows * columns * rowBytes) / chunkSize
-        return (0..<numChunks).map { index -> [MPSMatrix] in
-            let startIndex = index * chunkSize
-            let endIndex = min(startIndex + chunkSize, rows * columns * rowBytes)
-            
-            let chunkRows = endIndex / rowBytes - startIndex / rowBytes
-            let chunkColumns = min(chunkSize / rowBytes, columns)
-            
-            let chunkDescriptor = MPSMatrixDescriptor(rows: chunkRows, columns: chunkColumns, rowBytes: rowBytes, dataType: dataType)
-            let chunkMatrix = MPSMatrix(buffer: buffer, offset: startIndex, descriptor: chunkDescriptor)
-            return [chunkMatrix]
-        }
-    }
-}
+
+/*
+ 
+ extension MPSMatrix {
+ 
+ func split(into chunkSize: Int, buffer: MTLBuffer) -> [[MPSMatrix]] {
+ let numChunks = (rows * columns * rowBytes) / chunkSize
+ return (0..<numChunks).map { index -> [MPSMatrix] in
+ let startIndex = index * chunkSize
+ let endIndex = min(startIndex + chunkSize, rows * columns * rowBytes)
+ 
+ let chunkRows = endIndex / rowBytes - startIndex / rowBytes
+ let chunkColumns = min(chunkSize / rowBytes, columns)
+ 
+ let chunkDescriptor = MPSMatrixDescriptor(rows: chunkRows, columns: chunkColumns, rowBytes: rowBytes, dataType: dataType)
+ let chunkMatrix = MPSMatrix(buffer: buffer, offset: startIndex, descriptor: chunkDescriptor)
+ return [chunkMatrix]
+ }
+ }
+ }
+ 
+ */
 
 class MPSNeuralNetwork {
     
@@ -117,20 +123,22 @@ class MPSNeuralNetwork {
     
     
     
+    
+    
+    
     private func calculateHiddenLayerOutput(_ inputBuffer: MTLBuffer) -> MTLBuffer {
         
         
         print("calculateHiddenLayerOutput")
         
-        
-        
-        
         // Define required sizes
         let requiredInputBufferSize = inputSize * MemoryLayout<Float>.stride
         let hiddenLayerOutputSize = hiddenSize * MemoryLayout<Float>.stride
         
-        // Ensure the input buffer is large enough
-        //assert(inputBuffer.length >= requiredInputBufferSize, "inputBuffer is too small for the matrix size.")
+        print(inputBuffer.length)
+        
+        // Ensure input buffer size is correct
+        assert(inputBuffer.length >= requiredInputBufferSize, "inputBuffer is too small for the matrix size.")
         
         // Create the output buffer
         let hiddenLayerOutputBuffer = device.makeBuffer(length: hiddenLayerOutputSize, options: .storageModeShared)!
@@ -150,6 +158,9 @@ class MPSNeuralNetwork {
             let startRow = chunkIndex * chunkSize
             let numRows = min(chunkSize, inputSize - startRow)
             
+            // Debug prints to monitor chunk sizes
+            print("Processing chunk \(chunkIndex): startRow=\(startRow), numRows=\(numRows)")
+            
             let chunkInputDescriptor = MPSMatrixDescriptor(rows: numRows, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
             let chunkWeightsDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: numRows, rowBytes: numRows * MemoryLayout<Float>.stride, dataType: .float32)
             let chunkOutputDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
@@ -159,6 +170,9 @@ class MPSNeuralNetwork {
             let chunkInputMatrix = MPSMatrix(buffer: chunkInputBuffer, descriptor: chunkInputDescriptor)
             let chunkWeightsMatrix = MPSMatrix(buffer: weightsInputHidden, descriptor: chunkWeightsDescriptor)
             let chunkOutputMatrix = MPSMatrix(buffer: hiddenLayerOutputBuffer, descriptor: chunkOutputDescriptor)
+            
+            // Assert chunk sizes are correct
+            assert(chunkInputBuffer.length >= numRows * MemoryLayout<Float>.stride, "Chunk input buffer size mismatch.")
             
             let multiplication = MPSMatrixMultiplication(device: device, transposeLeft: false, transposeRight: false, resultRows: hiddenSize, resultColumns: 1, interiorColumns: numRows, alpha: 1.0, beta: 0.0)
             
@@ -174,51 +188,58 @@ class MPSNeuralNetwork {
     
     
     
+    
     private func calculateOutput(_ hiddenLayerOutputBuffer: MTLBuffer) -> MTLBuffer {
         
+        
+        
         print("calculateOutput")
+
         // Define required sizes
         let outputBufferSize = outputSize * MemoryLayout<Float>.stride
-        
+
+        // Ensure the hidden layer output buffer is large enough
+        assert(hiddenLayerOutputBuffer.length >= hiddenSize * MemoryLayout<Float>.stride, "hiddenLayerOutputBuffer size is too small.")
+
         // Create the output buffer
         let outputBuffer = device.makeBuffer(length: outputBufferSize, options: .storageModeShared)!
-        
+
         // Matrix descriptors
         let hiddenDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
         let weightsDescriptor = MPSMatrixDescriptor(rows: outputSize, columns: hiddenSize, rowBytes: hiddenSize * MemoryLayout<Float>.stride, dataType: .float32)
         let outputDescriptor = MPSMatrixDescriptor(rows: outputSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
-        
+
         // Determine chunk size based on buffer capacity
-        let maxBufferBytes = 8 // Adjust this if needed
-        let maxChunkSize = maxBufferBytes / MemoryLayout<Float>.stride
+        let maxBufferBytes = outputBufferSize // Size of the output buffer
+        let maxChunkSize = min(maxBufferBytes / MemoryLayout<Float>.stride, hiddenSize) // Adjust chunk size
         let numChunks = (hiddenSize + maxChunkSize - 1) / maxChunkSize
-        
+
         let commandBuffer = commandQueue.makeCommandBuffer()!
-        
+
         for chunkIndex in 0..<numChunks {
             let startRow = chunkIndex * maxChunkSize
             let rowsInChunk = min(maxChunkSize, hiddenSize - startRow)
-            
+
+            // Debug prints to monitor chunk sizes
+            print("Processing chunk \(chunkIndex): startRow=\(startRow), rowsInChunk=\(rowsInChunk)")
+
             let chunkHiddenDescriptor = MPSMatrixDescriptor(rows: rowsInChunk, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
             let chunkWeightsDescriptor = MPSMatrixDescriptor(rows: outputSize, columns: rowsInChunk, rowBytes: rowsInChunk * MemoryLayout<Float>.stride, dataType: .float32)
             let chunkOutputDescriptor = MPSMatrixDescriptor(rows: outputSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
-            
-            let chunkHiddenBuffer = device.makeBuffer(length: rowsInChunk * MemoryLayout<Float>.stride, options: .storageModeShared)!
-            let chunkWeightsBuffer = device.makeBuffer(length: outputSize * rowsInChunk * MemoryLayout<Float>.stride, options: .storageModeShared)!
-            let chunkOutputBuffer = device.makeBuffer(length: outputSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
-            
-            let chunkHiddenMatrix = MPSMatrix(buffer: chunkHiddenBuffer, descriptor: chunkHiddenDescriptor)
+
+            // Use offsets for chunking
+            let chunkHiddenMatrix = MPSMatrix(buffer: hiddenLayerOutputBuffer, descriptor: chunkHiddenDescriptor)
             let chunkWeightsMatrix = MPSMatrix(buffer: weightsHiddenOutput, descriptor: chunkWeightsDescriptor)
-            let chunkOutputMatrix = MPSMatrix(buffer: chunkOutputBuffer, descriptor: chunkOutputDescriptor)
-            
+            let chunkOutputMatrix = MPSMatrix(buffer: outputBuffer, descriptor: chunkOutputDescriptor)
+
             let multiplication = MPSMatrixMultiplication(device: device, transposeLeft: false, transposeRight: false, resultRows: outputSize, resultColumns: 1, interiorColumns: rowsInChunk, alpha: 1.0, beta: 0.0)
-            
+
             multiplication.encode(commandBuffer: commandBuffer, leftMatrix: chunkWeightsMatrix, rightMatrix: chunkHiddenMatrix, resultMatrix: chunkOutputMatrix)
         }
-        
+
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
-        
+
         return outputBuffer
     }
     
@@ -234,6 +255,11 @@ class MPSNeuralNetwork {
     
     
     public func train(_ inputs: [[Float]], _ targets: [[Float]], epochs: Int, learningRate: Float) {
+        
+        print("train")
+        
+        
+        
         for _ in 0..<epochs {
             for i in 0..<inputs.count {
                 let input = inputs[i]
