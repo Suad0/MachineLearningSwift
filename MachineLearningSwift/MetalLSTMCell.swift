@@ -65,21 +65,116 @@ class MetalLSTMCell {
         c_t = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
     }
     
+    // Custom element-wise addition
+    private func elementWiseAdd(bufferA: MTLBuffer, bufferB: MTLBuffer, resultBuffer: MTLBuffer, length: Int) {
+        let aPointer = bufferA.contents().bindMemory(to: Float.self, capacity: length)
+        let bPointer = bufferB.contents().bindMemory(to: Float.self, capacity: length)
+        let resultPointer = resultBuffer.contents().bindMemory(to: Float.self, capacity: length)
+        
+        for i in 0..<length {
+            resultPointer[i] = aPointer[i] + bPointer[i]
+        }
+    }
+    
+    // Custom element-wise multiplication
+    private func elementWiseMultiply(bufferA: MTLBuffer, bufferB: MTLBuffer, resultBuffer: MTLBuffer, length: Int) {
+        let aPointer = bufferA.contents().bindMemory(to: Float.self, capacity: length)
+        let bPointer = bufferB.contents().bindMemory(to: Float.self, capacity: length)
+        let resultPointer = resultBuffer.contents().bindMemory(to: Float.self, capacity: length)
+        
+        for i in 0..<length {
+            resultPointer[i] = aPointer[i] * bPointer[i]
+        }
+    }
+    
+    // Matrix multiplication for each gate using MPS
+    private func matrixMultiply(weightBuffer: MTLBuffer, inputBuffer: MTLBuffer, resultBuffer: MTLBuffer, rows: Int, columns: Int) {
+        let commandBuffer = commandQueue.makeCommandBuffer()!
+        
+        let matrixMultiplication = MPSMatrixMultiplication(
+            device: device,
+            transposeLeft: false,
+            transposeRight: false,
+            resultRows: rows,
+            resultColumns: 1,
+            interiorColumns: columns,
+            alpha: 1.0,
+            beta: 0.0
+        )
+        
+        let inputDescriptor = MPSMatrixDescriptor(rows: columns, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        let resultDescriptor = MPSMatrixDescriptor(rows: rows, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        
+        matrixMultiplication.encode(
+            commandBuffer: commandBuffer,
+            leftMatrix: MPSMatrix(buffer: weightBuffer, descriptor: MPSMatrixDescriptor(rows: rows, columns: columns, rowBytes: columns * MemoryLayout<Float>.stride, dataType: .float32)),
+            rightMatrix: MPSMatrix(buffer: inputBuffer, descriptor: inputDescriptor),
+            resultMatrix: MPSMatrix(buffer: resultBuffer, descriptor: resultDescriptor)
+        )
+        
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+    }
+    
+    func forward(input: MTLBuffer) -> MTLBuffer {
+        
+        let commandBuffer = commandQueue.makeCommandBuffer()!
+        
+        // Buffers for gates
+        let forgetGateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        let inputGateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        let outputGateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        let cellGateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        
+        // Perform matrix multiplications
+        matrixMultiply(weightBuffer: Wf, inputBuffer: input, resultBuffer: forgetGateBuffer, rows: hiddenSize, columns: inputSize)
+        matrixMultiply(weightBuffer: Wi, inputBuffer: input, resultBuffer: inputGateBuffer, rows: hiddenSize, columns: inputSize)
+        matrixMultiply(weightBuffer: Wo, inputBuffer: input, resultBuffer: outputGateBuffer, rows: hiddenSize, columns: inputSize)
+        matrixMultiply(weightBuffer: Wc, inputBuffer: input, resultBuffer: cellGateBuffer, rows: hiddenSize, columns: inputSize)
+        
+        // Apply activations
+        let forgetGateSigmoidBuffer = sigmoid(inputBuffer: forgetGateBuffer, length: hiddenSize)
+        let inputGateSigmoidBuffer = sigmoid(inputBuffer: inputGateBuffer, length: hiddenSize)
+        let outputGateSigmoidBuffer = sigmoid(inputBuffer: outputGateBuffer, length: hiddenSize)
+        let cellGateTanhBuffer = tanh(inputBuffer: cellGateBuffer, length: hiddenSize)
+        
+        // Element-wise operations
+        let updatedCellStateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        elementWiseMultiply(bufferA: forgetGateSigmoidBuffer, bufferB: c_t, resultBuffer: updatedCellStateBuffer, length: hiddenSize)
+        elementWiseMultiply(bufferA: inputGateSigmoidBuffer, bufferB: cellGateTanhBuffer, resultBuffer: updatedCellStateBuffer, length: hiddenSize)
+        
+        // Update hidden state
+        let updatedHiddenStateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        elementWiseMultiply(bufferA: outputGateSigmoidBuffer, bufferB: updatedCellStateBuffer, resultBuffer: updatedHiddenStateBuffer, length: hiddenSize)
+        
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        
+        // Update internal state for the next timestep
+        h_t = updatedHiddenStateBuffer
+        c_t = updatedCellStateBuffer
+        
+        return updatedHiddenStateBuffer
+    }
+    
+    
+    
     private func sigmoid(inputBuffer: MTLBuffer, length: Int) -> MTLBuffer {
         // Create a buffer to store the output
-        let outputBuffer = device.makeBuffer(length: length, options: .storageModeShared)!
+        let outputBuffer = device.makeBuffer(length: length * MemoryLayout<Float>.stride, options: .storageModeShared)!
         
         // MPS command buffer
         let commandBuffer = commandQueue.makeCommandBuffer()!
         
-        // Define a MPSNeuronSigmoid operation
-        let neuronDescriptor = MPSNNNeuronDescriptor.cnnNeuronDescriptor(with: .sigmoid, a: 1.0, b: 1.0)
+        // Define a neuron descriptor for sigmoid
+        //let neuronDescriptor = MPSNNNeuronDescriptor.cnnNeuronDescriptor(with: .sigmoid)
         
+        // Create the MPSMatrixNeuron
         let sigmoidNeuron = MPSMatrixNeuron(device: device)
         
         // Define matrix descriptors
-        let inputDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
-        let outputDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        let inputDescriptor = MPSMatrixDescriptor(rows: length, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        let outputDescriptor = inputDescriptor
         
         // Create MPSMatrix objects
         let inputMatrix = MPSMatrix(buffer: inputBuffer, descriptor: inputDescriptor)
@@ -98,47 +193,49 @@ class MetalLSTMCell {
     
     
     
-    func forward(input: MTLBuffer) -> MTLBuffer {
+    
+    
+    
+    
+    private func tanh(inputBuffer: MTLBuffer, length: Int) -> MTLBuffer {
+        // Create a buffer to store the output
+        let outputBuffer = device.makeBuffer(length: length * MemoryLayout<Float>.stride, options: .storageModeShared)!
         
+        // MPS command buffer
         let commandBuffer = commandQueue.makeCommandBuffer()!
         
-        // Define matrix descriptors for input and hidden layers
-        let inputDescriptor = MPSMatrixDescriptor(rows: inputSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
-        let hiddenDescriptor = MPSMatrixDescriptor(rows: hiddenSize, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        // Define a neuron descriptor for tanh
+        //let neuronDescriptor = MPSNNNeuronDescriptor.cnnNeuronDescriptor(with: .tanH)
         
-        // Matrix multiplications for forget gate
-        let forgetGateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        // Create the MPSMatrixNeuron
+        let tanhNeuron = MPSMatrixNeuron(device: device)
         
-        let forgetMultiplication = MPSMatrixMultiplication(
-            device: device,
-            transposeLeft: false,
-            transposeRight: false,
-            resultRows: hiddenSize,
-            resultColumns: 1,
-            interiorColumns: inputSize,
-            alpha: 1.0,
-            beta: 0.0
-        )
+        // Define matrix descriptors
+        let inputDescriptor = MPSMatrixDescriptor(rows: length, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
+        let outputDescriptor = inputDescriptor
         
-        // Encode matrix multiplication for forget gate
-        forgetMultiplication.encode(
-            commandBuffer: commandBuffer,
-            leftMatrix: MPSMatrix(buffer: Wf, descriptor: MPSMatrixDescriptor(rows: hiddenSize, columns: inputSize, rowBytes: inputSize * MemoryLayout<Float>.stride, dataType: .float32)),
-            rightMatrix: MPSMatrix(buffer: input, descriptor: inputDescriptor),
-            resultMatrix: MPSMatrix(buffer: forgetGateBuffer, descriptor: hiddenDescriptor)
-        )
+        // Create MPSMatrix objects
+        let inputMatrix = MPSMatrix(buffer: inputBuffer, descriptor: inputDescriptor)
+        let outputMatrix = MPSMatrix(buffer: outputBuffer, descriptor: outputDescriptor)
         
-        // Apply sigmoid to forget gate buffer
-        let forgetGateSigmoidBuffer = sigmoid(inputBuffer: forgetGateBuffer  , length: hiddenSize * MemoryLayout<Float>.stride)
+        // Apply tanh function
+        tanhNeuron.encode(commandBuffer: commandBuffer, inputMatrix: inputMatrix, biasVector: nil, resultMatrix: outputMatrix)
         
-        // Repeat similar steps for input, output, and cell gates (Wi, Wo, Wc, etc.)
-        
-        // Update hidden state h_t and cell state c_t
-        
+        // Commit and wait for completion
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
         
-        return h_t  // Assuming h_t is the updated hidden state buffer
+        // Return the buffer with tanh results
+        return outputBuffer
     }
     
+    
+    
+    
+    
+    
+    
 }
+
+
+
