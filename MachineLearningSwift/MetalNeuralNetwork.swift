@@ -35,7 +35,7 @@ import MetalPerformanceShaders
  
  */
 
-class MPSNeuralNetwork {
+class MetalNeuralNetwork {
     
     private var inputSize: Int
     private var hiddenSize: Int

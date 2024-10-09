@@ -95,24 +95,24 @@ func testDecisionTree(){
 func vectorStoreTest(){
     
     let docs = [
-            "I like apples",
-            "I like pears",
-            "I like dogs",
-            "I like cats"
-        ]
-
-        var vs = VectorStore(documents: docs)
-
-        print(vs.getTopN(query: "I like apples", n: 1))
-        print(vs.getTopN(query: "fruit", n: 2))
+        "I like apples",
+        "I like pears",
+        "I like dogs",
+        "I like cats"
+    ]
+    
+    var vs = VectorStore(documents: docs)
+    
+    print(vs.getTopN(query: "I like apples", n: 1))
+    print(vs.getTopN(query: "fruit", n: 2))
     
 }
 
 
-func testMPSNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int) {
+func testMetalNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int) {
     
     
-    let neuralNetwork = MPSNeuralNetwork(inputSize: inputSize, hiddenSize: hiddenSize, outputSize: outputSize)
+    let neuralNetwork = MetalNeuralNetwork(inputSize: inputSize, hiddenSize: hiddenSize, outputSize: outputSize)
     
     let inputs: [[Float]] = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]
     let targets: [[Float]] = [[0.0], [1.0], [1.0], [0.0]]
@@ -130,7 +130,57 @@ func testMPSNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int) {
     }
 }
 
-testMPSNeuralNetwork(inputSize: 2, hiddenSize: 4, outputSize: 1)
+//testMetalNeuralNetwork(inputSize: 2, hiddenSize: 4, outputSize: 1)
+
+func testLSTMCell() {
+    
+    // Example of using the LSTMCell
+    let inputSize = 10 // For example, 10 features in the input
+    let hiddenSize = 20 // Hidden layer size
+    let lstm = LSTMCell(inputSize: inputSize, hiddenSize: hiddenSize)
+    
+    // Assume we have some input vector for a single time step
+    let input = (0..<inputSize).map { _ in Float.random(in: -1...1) }
+    
+    // Forward pass through the LSTM
+    let output = lstm.forward(input: input)
+    
+    print("LSTM output for the current time step:", output)
+    
+    
+    
+    
+}
+
+//testLSTMCell()
+
+func testMetalLSTMCell() {
+    
+    let inputSize = 10   // For example, 10 features in the input
+    let hiddenSize = 20  // Hidden layer size
+    
+    let lstm = MetalLSTMCell(inputSize: inputSize, hiddenSize: hiddenSize)
+    
+    // Assume we have some input vector for a single time step
+    let inputArray = (0..<inputSize).map { _ in Float.random(in: -1...1) }
+    
+    // Convert input array to MTLBuffer
+    let inputBuffer = lstm.device.makeBuffer(bytes: inputArray, length: inputSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+    
+    // Forward pass through the LSTM
+    let outputBuffer = lstm.forward(input: inputBuffer)
+    
+    // Convert output buffer back to array to print
+    let outputPointer = outputBuffer.contents().bindMemory(to: Float.self, capacity: hiddenSize)
+    let outputArray = Array(UnsafeBufferPointer(start: outputPointer, count: hiddenSize))
+    
+    // Print LSTM output for the current time step
+    print("LSTM output for the current time step:", outputArray)
+}
+
+testMetalLSTMCell()
+
+
 
 
 
