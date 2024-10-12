@@ -1,10 +1,3 @@
-//
-//  MetalLSTMCell.swift
-//  MachineLearningSwift
-//
-//  Created by Suad Demiri on 08.10.24.
-//
-
 import Foundation
 import Metal
 import MetalPerformanceShaders
@@ -60,9 +53,21 @@ class MetalLSTMCell {
         bo = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
         bc = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
         
-        // Hidden and cell states
+        // Hidden and cell states (initialized with random values)
         h_t = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
         c_t = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        
+        initializeStates()
+    }
+    
+    // Initialize the hidden and cell states with random values (or zero if you prefer)
+    private func initializeStates() {
+        let hPointer = h_t.contents().bindMemory(to: Float.self, capacity: hiddenSize)
+        let cPointer = c_t.contents().bindMemory(to: Float.self, capacity: hiddenSize)
+        for i in 0..<hiddenSize {
+            hPointer[i] = Float.random(in: -0.5...0.5) // Random initialization for hidden state
+            cPointer[i] = Float.random(in: -0.5...0.5) // Random initialization for cell state
+        }
     }
     
     // Custom element-wise addition
@@ -138,104 +143,53 @@ class MetalLSTMCell {
         let outputGateSigmoidBuffer = sigmoid(inputBuffer: outputGateBuffer, length: hiddenSize)
         let cellGateTanhBuffer = tanh(inputBuffer: cellGateBuffer, length: hiddenSize)
         
-        // Element-wise operations
+        // Element-wise operations to update cell state
         let updatedCellStateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        
+        // Multiply forget gate and previous cell state
         elementWiseMultiply(bufferA: forgetGateSigmoidBuffer, bufferB: c_t, resultBuffer: updatedCellStateBuffer, length: hiddenSize)
-        elementWiseMultiply(bufferA: inputGateSigmoidBuffer, bufferB: cellGateTanhBuffer, resultBuffer: updatedCellStateBuffer, length: hiddenSize)
         
-        // Update hidden state
-        let updatedHiddenStateBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
-        elementWiseMultiply(bufferA: outputGateSigmoidBuffer, bufferB: updatedCellStateBuffer, resultBuffer: updatedHiddenStateBuffer, length: hiddenSize)
+        // Multiply input gate and cell gate activation, and accumulate to updatedCellStateBuffer
+        let tempBuffer = device.makeBuffer(length: hiddenSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        elementWiseMultiply(bufferA: inputGateSigmoidBuffer, bufferB: cellGateTanhBuffer, resultBuffer: tempBuffer, length: hiddenSize)
+        elementWiseAdd(bufferA: updatedCellStateBuffer, bufferB: tempBuffer, resultBuffer: updatedCellStateBuffer, length: hiddenSize)
         
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+        // Update hidden state with output gate and tanh of updated cell state
+        let tanhCellStateBuffer = tanh(inputBuffer: updatedCellStateBuffer, length: hiddenSize)
+        elementWiseMultiply(bufferA: outputGateSigmoidBuffer, bufferB: tanhCellStateBuffer, resultBuffer: h_t, length: hiddenSize)
         
-        // Update internal state for the next timestep
-        h_t = updatedHiddenStateBuffer
+        // Update cell state (c_t) with the new values
         c_t = updatedCellStateBuffer
         
-        return updatedHiddenStateBuffer
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        
+        return h_t
     }
-    
-    
     
     private func sigmoid(inputBuffer: MTLBuffer, length: Int) -> MTLBuffer {
-        // Create a buffer to store the output
-        let outputBuffer = device.makeBuffer(length: length * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        // Implement a sigmoid activation (or use Metal Performance Shaders if available)
+        let resultBuffer = device.makeBuffer(length: length * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        let inputPointer = inputBuffer.contents().bindMemory(to: Float.self, capacity: length)
+        let resultPointer = resultBuffer.contents().bindMemory(to: Float.self, capacity: length)
         
-        // MPS command buffer
-        let commandBuffer = commandQueue.makeCommandBuffer()!
+        for i in 0..<length {
+            resultPointer[i] = 1.0 / (1.0 + exp(-inputPointer[i]))
+        }
         
-        // Define a neuron descriptor for sigmoid
-        //let neuronDescriptor = MPSNNNeuronDescriptor.cnnNeuronDescriptor(with: .sigmoid)
-        
-        // Create the MPSMatrixNeuron
-        let sigmoidNeuron = MPSMatrixNeuron(device: device)
-        
-        // Define matrix descriptors
-        let inputDescriptor = MPSMatrixDescriptor(rows: length, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
-        let outputDescriptor = inputDescriptor
-        
-        // Create MPSMatrix objects
-        let inputMatrix = MPSMatrix(buffer: inputBuffer, descriptor: inputDescriptor)
-        let outputMatrix = MPSMatrix(buffer: outputBuffer, descriptor: outputDescriptor)
-        
-        // Apply sigmoid function
-        sigmoidNeuron.encode(commandBuffer: commandBuffer, inputMatrix: inputMatrix, biasVector: nil, resultMatrix: outputMatrix)
-        
-        // Commit and wait for completion
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-        
-        // Return the buffer with sigmoid results
-        return outputBuffer
+        return resultBuffer
     }
-    
-    
-    
-    
-    
-    
     
     private func tanh(inputBuffer: MTLBuffer, length: Int) -> MTLBuffer {
-        // Create a buffer to store the output
-        let outputBuffer = device.makeBuffer(length: length * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        // Implement a tanh activation (or use Metal Performance Shaders if available)
+        let resultBuffer = device.makeBuffer(length: length * MemoryLayout<Float>.stride, options: .storageModeShared)!
+        let inputPointer = inputBuffer.contents().bindMemory(to: Float.self, capacity: length)
+        let resultPointer = resultBuffer.contents().bindMemory(to: Float.self, capacity: length)
         
-        // MPS command buffer
-        let commandBuffer = commandQueue.makeCommandBuffer()!
+        for i in 0..<length {
+            resultPointer[i] = _math.tanh(inputPointer[i])
+        }
         
-        // Define a neuron descriptor for tanh
-        //let neuronDescriptor = MPSNNNeuronDescriptor.cnnNeuronDescriptor(with: .tanH)
-        
-        // Create the MPSMatrixNeuron
-        let tanhNeuron = MPSMatrixNeuron(device: device)
-        
-        // Define matrix descriptors
-        let inputDescriptor = MPSMatrixDescriptor(rows: length, columns: 1, rowBytes: MemoryLayout<Float>.stride, dataType: .float32)
-        let outputDescriptor = inputDescriptor
-        
-        // Create MPSMatrix objects
-        let inputMatrix = MPSMatrix(buffer: inputBuffer, descriptor: inputDescriptor)
-        let outputMatrix = MPSMatrix(buffer: outputBuffer, descriptor: outputDescriptor)
-        
-        // Apply tanh function
-        tanhNeuron.encode(commandBuffer: commandBuffer, inputMatrix: inputMatrix, biasVector: nil, resultMatrix: outputMatrix)
-        
-        // Commit and wait for completion
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-        
-        // Return the buffer with tanh results
-        return outputBuffer
+        return resultBuffer
     }
-    
-    
-    
-    
-    
-    
-    
 }
-
-
-

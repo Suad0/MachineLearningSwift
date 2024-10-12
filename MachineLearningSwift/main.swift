@@ -156,29 +156,41 @@ func testLSTMCell() {
 
 func testMetalLSTMCell() {
     
-    let inputSize = 10   // For example, 10 features in the input
-    let hiddenSize = 20  // Hidden layer size
+    let inputSize = 10
+    let hiddenSize = 20
+    let n_timesteps = 3
     
-    let lstm = MetalLSTMCell(inputSize: inputSize, hiddenSize: hiddenSize)
+    // Initialize LSTM cell
+    let lstmCell = MetalLSTMCell(inputSize: inputSize, hiddenSize: hiddenSize)
     
-    // Assume we have some input vector for a single time step
-    let inputArray = (0..<inputSize).map { _ in Float.random(in: -1...1) }
+    // Loop over timesteps
+    for timestep in 0..<n_timesteps {
+        // Create an input buffer for each timestep
+        let inputLength = inputSize * MemoryLayout<Float>.stride
+        let inputBuffer = lstmCell.device.makeBuffer(length: inputLength, options: .storageModeShared)!
+        
+        // Fill with values (here it's filled with 1.0s, but this would be your actual input data)
+        let inputPointer = inputBuffer.contents().bindMemory(to: Float.self, capacity: inputSize)
+        for i in 0..<inputSize {
+            inputPointer[i] = Float(1.0)  // Use real data here
+        }
+        
+        // Perform forward pass
+        let hiddenStateBuffer = lstmCell.forward(input: inputBuffer)
+        
+        // Access hidden state values
+        let hiddenStatePointer = hiddenStateBuffer.contents().bindMemory(to: Float.self, capacity: hiddenSize)
+        for i in 0..<hiddenSize {
+            print("Timestep \(timestep), hidden state at index \(i): \(hiddenStatePointer[i])")
+        }
+    }
     
-    // Convert input array to MTLBuffer
-    let inputBuffer = lstm.device.makeBuffer(bytes: inputArray, length: inputSize * MemoryLayout<Float>.stride, options: .storageModeShared)!
-    
-    // Forward pass through the LSTM
-    let outputBuffer = lstm.forward(input: inputBuffer)
-    
-    // Convert output buffer back to array to print
-    let outputPointer = outputBuffer.contents().bindMemory(to: Float.self, capacity: hiddenSize)
-    let outputArray = Array(UnsafeBufferPointer(start: outputPointer, count: hiddenSize))
-    
-    // Print LSTM output for the current time step
-    print("LSTM output for the current time step:", outputArray)
 }
 
 testMetalLSTMCell()
+
+
+
 
 
 
