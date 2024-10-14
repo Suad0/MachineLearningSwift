@@ -15,6 +15,7 @@
 		1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1782C052C7A0008BE23 /* KNearestNeighbors.swift */; };
 		11A99EF02CB56B2A003D423D /* LSTMCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A99EEF2CB56B2A003D423D /* LSTMCell.swift */; };
 		11A99EF22CB56F10003D423D /* MetalLSTMCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A99EF12CB56F10003D423D /* MetalLSTMCell.swift */; };
+		11CFE3EF2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */; };
 		11EA585A2C20B56A00768119 /* MetalNeuralNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 		1138E1782C052C7A0008BE23 /* KNearestNeighbors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KNearestNeighbors.swift; sourceTree = "<group>"; };
 		11A99EEF2CB56B2A003D423D /* LSTMCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LSTMCell.swift; sourceTree = "<group>"; };
 		11A99EF12CB56F10003D423D /* MetalLSTMCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalLSTMCell.swift; sourceTree = "<group>"; };
+		11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
 		11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalNeuralNetwork.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -82,6 +84,7 @@
 				112270CF2C77D1F00099B5BF /* VectorStore.swift */,
 				11A99EEF2CB56B2A003D423D /* LSTMCell.swift */,
 				11A99EF12CB56F10003D423D /* MetalLSTMCell.swift */,
+				11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */,
 			);
 			path = MachineLearningSwift;
 			sourceTree = "<group>";
@@ -146,6 +149,7 @@
 			files = (
 				1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */,
 				11A99EF02CB56B2A003D423D /* LSTMCell.swift in Sources */,
+				11CFE3EF2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift in Sources */,
 				1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */,
 				1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */,
 				112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */,

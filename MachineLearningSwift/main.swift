@@ -187,7 +187,38 @@ func testMetalLSTMCell() {
     
 }
 
-testMetalLSTMCell()
+//testMetalLSTMCell()
+
+func testRestrictedBoltzmannMachine() {
+    
+    
+    // 1. Prepare the data (binary in this case)
+    let data: [[Double]] = [
+        [1, 0, 1, 0],
+        [0, 1, 1, 0],
+        [1, 1, 0, 1],
+        [0, 0, 1, 1]
+    ]
+    
+    let numVisible = 4
+    let numHidden = 3
+    let rbm = RestrictedBoltzmannMachine(numVisible: numVisible, numHidden: numHidden)
+    
+    let epochs = 1000
+    let learningRate = 0.1
+    rbm.train(data: data, epochs: epochs, learningRate: learningRate)
+    
+    for sample in data {
+        let hidden = rbm.sampleHidden(from: sample)
+        let reconstructed = rbm.sampleVisible(from: hidden)
+        print("Original: \(sample) -> Reconstructed: \(reconstructed)")
+    }
+    
+    
+    
+}
+
+testRestrictedBoltzmannMachine()
 
 
 
