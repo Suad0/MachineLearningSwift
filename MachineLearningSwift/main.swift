@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Metal
 
 func testNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int ){
     
@@ -218,7 +219,116 @@ func testRestrictedBoltzmannMachine() {
     
 }
 
-testRestrictedBoltzmannMachine()
+//testRestrictedBoltzmannMachine()
+
+
+func trainAndEvaluateRBM(numVisible: Int, numHidden: Int, data: [[Float]], epochs: Int, batchSize: Int, learningRate: Float, k: Int) {
+    
+    // Initialize the Metal device and command queue
+    guard let device = MTLCreateSystemDefaultDevice() else {
+        fatalError("Metal is not supported on this device")
+    }
+    
+    // Prepare data into Metal buffers
+    func prepareData(device: MTLDevice, data: [[Float]]) -> [MTLBuffer] {
+        var buffers = [MTLBuffer]()
+        for sample in data {
+            let buffer = device.makeBuffer(bytes: sample, length: sample.count * MemoryLayout<Float>.stride, options: .storageModeShared)!
+            buffers.append(buffer)
+        }
+        return buffers
+    }
+
+    let trainingBuffers = prepareData(device: device, data: data)
+    
+    // Initialize RBM
+    let rbm = MetalRestrictedBoltzmannMachine(numVisible: numVisible, numHidden: numHidden)
+
+    // Training Loop
+    for epoch in 0..<epochs {
+        print("Epoch \(epoch + 1)/\(epochs)")
+        var totalReconstructionError: Float = 0.0
+        
+        for i in stride(from: 0, to: trainingBuffers.count, by: batchSize) {
+            // Select a batch from the training data
+            let batchEnd = min(i + batchSize, trainingBuffers.count)
+            let batch = Array(trainingBuffers[i..<batchEnd])
+
+            for sample in batch {
+                // Initialize persistent chain (in this case, start with the visible sample)
+                var chain = sample
+
+                // Perform Contrastive Divergence (CD-k) using persistentCD
+                let visible0 = chain
+                let hidden0 = rbm.sampleHidden(from: visible0)
+                let visibleK = rbm.persistentCD(k: k, chain: &chain)
+                let hiddenK = rbm.sampleHidden(from: visibleK)
+
+                // Update weights using the CD-k results
+                rbm.updateWeights(learningRate: learningRate, visible0: visible0, hidden0: hidden0, visibleK: visibleK, hiddenK: hiddenK)
+
+                // Calculate reconstruction error for this sample
+                let reconstructionError = rbm.reconstructionError(original: visible0, reconstructed: visibleK)
+                totalReconstructionError += reconstructionError
+            }
+        }
+
+        // Average reconstruction error for the epoch
+        let avgReconstructionError = totalReconstructionError / Float(trainingBuffers.count)
+        print("Average Reconstruction Error in Epoch \(epoch + 1): \(avgReconstructionError)")
+    }
+
+    // Evaluate the model by reconstructing the first sample in the dataset
+    let testSample = trainingBuffers[0] // Take the first sample for testing
+    let hiddenSample = rbm.sampleHidden(from: testSample) // Sample hidden units
+    let reconstructedSample = rbm.sampleVisible(from: hiddenSample) // Reconstruct visible units
+
+    let reconstructionError = rbm.reconstructionError(original: testSample, reconstructed: reconstructedSample)
+    print("Reconstruction Error on Test Sample: \(reconstructionError)")
+    
+    // Optionally, extract the learned weights and biases
+    func extractWeights(rbm: MetalRestrictedBoltzmannMachine) -> [[Float]] {
+        let weightPointer = rbm.weightsBuffer.contents().bindMemory(to: Float.self, capacity: rbm.numVisible * rbm.numHidden)
+        var weights = [[Float]](repeating: [Float](repeating: 0.0, count: rbm.numHidden), count: rbm.numVisible)
+        
+        for i in 0..<rbm.numVisible {
+            for j in 0..<rbm.numHidden {
+                let index = i * rbm.numHidden + j
+                weights[i][j] = weightPointer[index]
+            }
+        }
+        
+        return weights
+    }
+
+    let learnedWeights = extractWeights(rbm: rbm)
+    print("Learned Weights: \(learnedWeights)")
+}
+
+let numVisible = 784  // Number of visible units (e.g., for 28x28 images)
+let numHidden = 128   // Number of hidden units
+let epochs = 10       // Number of training epochs
+let batchSize = 10    // Batch size for training
+let learningRate: Float = 0.01  // Learning rate
+let k = 1             // Number of Gibbs sampling steps in Contrastive Divergence
+
+
+// Generate random data for testing (e.g., 100 samples, each with 784 features)
+let numberOfSamples = 100
+var data: [[Float]] = []
+
+for _ in 0..<numberOfSamples {
+    let sample = (0..<numVisible).map { _ in Float.random(in: 0.0...1.0) } // Random values between 0 and 1
+    data.append(sample)
+}
+
+
+
+
+trainAndEvaluateRBM(numVisible: numVisible, numHidden: numHidden, data: data, epochs: epochs, batchSize: batchSize, learningRate: learningRate, k: k)
+
+
+
 
 
 

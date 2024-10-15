@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112270CF2C77D1F00099B5BF /* VectorStore.swift */; };
 		1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122EB4C2C071D180083D697 /* DecisionTree.swift */; };
+		113246B82CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */; };
 		1138E16E2C0528260008BE23 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E16D2C0528260008BE23 /* main.swift */; };
 		1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1742C0528CD0008BE23 /* LogisticRegression.swift */; };
 		1138E1772C0529BF0008BE23 /* NeuralNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1762C0529BF0008BE23 /* NeuralNetwork.swift */; };
@@ -34,6 +35,7 @@
 /* Begin PBXFileReference section */
 		112270CF2C77D1F00099B5BF /* VectorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorStore.swift; sourceTree = "<group>"; };
 		1122EB4C2C071D180083D697 /* DecisionTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionTree.swift; sourceTree = "<group>"; };
+		113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
 		1138E16A2C0528260008BE23 /* MachineLearningSwift */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MachineLearningSwift; sourceTree = BUILT_PRODUCTS_DIR; };
 		1138E16D2C0528260008BE23 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		1138E1742C0528CD0008BE23 /* LogisticRegression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogisticRegression.swift; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 				11A99EEF2CB56B2A003D423D /* LSTMCell.swift */,
 				11A99EF12CB56F10003D423D /* MetalLSTMCell.swift */,
 				11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */,
+				113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */,
 			);
 			path = MachineLearningSwift;
 			sourceTree = "<group>";
@@ -153,6 +156,7 @@
 				1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */,
 				1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */,
 				112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */,
+				113246B82CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift in Sources */,
 				11A99EF22CB56F10003D423D /* MetalLSTMCell.swift in Sources */,
 				1138E16E2C0528260008BE23 /* main.swift in Sources */,
 				11EA585A2C20B56A00768119 /* MetalNeuralNetwork.swift in Sources */,

@@ -79,6 +79,7 @@
 import Foundation
 
 class RestrictedBoltzmannMachine {
+    
     var numVisible: Int
     var numHidden: Int
     var weights: [[Double]]
