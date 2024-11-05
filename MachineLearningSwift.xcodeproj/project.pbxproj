@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1117C0E82CD583F90036F8F0 /* MetalQLearningAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1117C0E72CD583F90036F8F0 /* MetalQLearningAgent.swift */; };
 		112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112270CF2C77D1F00099B5BF /* VectorStore.swift */; };
 		1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122EB4C2C071D180083D697 /* DecisionTree.swift */; };
 		113246B82CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */; };
@@ -33,6 +34,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1117C0E72CD583F90036F8F0 /* MetalQLearningAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalQLearningAgent.swift; sourceTree = "<group>"; };
 		112270CF2C77D1F00099B5BF /* VectorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorStore.swift; sourceTree = "<group>"; };
 		1122EB4C2C071D180083D697 /* DecisionTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionTree.swift; sourceTree = "<group>"; };
 		113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 				11A99EF12CB56F10003D423D /* MetalLSTMCell.swift */,
 				11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */,
 				113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */,
+				1117C0E72CD583F90036F8F0 /* MetalQLearningAgent.swift */,
 			);
 			path = MachineLearningSwift;
 			sourceTree = "<group>";
@@ -153,6 +156,7 @@
 				1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */,
 				11A99EF02CB56B2A003D423D /* LSTMCell.swift in Sources */,
 				11CFE3EF2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift in Sources */,
+				1117C0E82CD583F90036F8F0 /* MetalQLearningAgent.swift in Sources */,
 				1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */,
 				1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */,
 				112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */,

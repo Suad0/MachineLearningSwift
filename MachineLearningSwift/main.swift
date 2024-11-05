@@ -238,12 +238,12 @@ func trainAndEvaluateRBM(numVisible: Int, numHidden: Int, data: [[Float]], epoch
         }
         return buffers
     }
-
+    
     let trainingBuffers = prepareData(device: device, data: data)
     
     // Initialize RBM
     let rbm = MetalRestrictedBoltzmannMachine(numVisible: numVisible, numHidden: numHidden)
-
+    
     // Training Loop
     for epoch in 0..<epochs {
         print("Epoch \(epoch + 1)/\(epochs)")
@@ -253,36 +253,36 @@ func trainAndEvaluateRBM(numVisible: Int, numHidden: Int, data: [[Float]], epoch
             // Select a batch from the training data
             let batchEnd = min(i + batchSize, trainingBuffers.count)
             let batch = Array(trainingBuffers[i..<batchEnd])
-
+            
             for sample in batch {
                 // Initialize persistent chain (in this case, start with the visible sample)
                 var chain = sample
-
+                
                 // Perform Contrastive Divergence (CD-k) using persistentCD
                 let visible0 = chain
                 let hidden0 = rbm.sampleHidden(from: visible0)
                 let visibleK = rbm.persistentCD(k: k, chain: &chain)
                 let hiddenK = rbm.sampleHidden(from: visibleK)
-
+                
                 // Update weights using the CD-k results
                 rbm.updateWeights(learningRate: learningRate, visible0: visible0, hidden0: hidden0, visibleK: visibleK, hiddenK: hiddenK)
-
+                
                 // Calculate reconstruction error for this sample
                 let reconstructionError = rbm.reconstructionError(original: visible0, reconstructed: visibleK)
                 totalReconstructionError += reconstructionError
             }
         }
-
+        
         // Average reconstruction error for the epoch
         let avgReconstructionError = totalReconstructionError / Float(trainingBuffers.count)
         print("Average Reconstruction Error in Epoch \(epoch + 1): \(avgReconstructionError)")
     }
-
+    
     // Evaluate the model by reconstructing the first sample in the dataset
     let testSample = trainingBuffers[0] // Take the first sample for testing
     let hiddenSample = rbm.sampleHidden(from: testSample) // Sample hidden units
     let reconstructedSample = rbm.sampleVisible(from: hiddenSample) // Reconstruct visible units
-
+    
     let reconstructionError = rbm.reconstructionError(original: testSample, reconstructed: reconstructedSample)
     print("Reconstruction Error on Test Sample: \(reconstructionError)")
     
@@ -300,7 +300,7 @@ func trainAndEvaluateRBM(numVisible: Int, numHidden: Int, data: [[Float]], epoch
         
         return weights
     }
-
+    
     let learnedWeights = extractWeights(rbm: rbm)
     print("Learned Weights: \(learnedWeights)")
 }
@@ -325,8 +325,61 @@ for _ in 0..<numberOfSamples {
 
 
 
-trainAndEvaluateRBM(numVisible: numVisible, numHidden: numHidden, data: data, epochs: epochs, batchSize: batchSize, learningRate: learningRate, k: k)
+//trainAndEvaluateRBM(numVisible: numVisible, numHidden: numHidden, data: data, epochs: epochs, batchSize: batchSize, learningRate: learningRate, k: k)
 
+func testQLearning() {
+    let numStates = 5
+    let numActions = 3
+    let learningRate: Float = 0.1
+    let discountFactor: Float = 0.9
+    let explorationRate: Float = 0.1
+    
+    let qTable = MetalQLearning(
+        numStates: numStates,
+        numActions: numActions,
+        learningRate: learningRate,
+        discountFactor: discountFactor,
+        explorationRate: explorationRate
+    )
+    
+    let testEpisodes = 10
+    
+    for episode in 1...testEpisodes {
+        print("Episode \(episode):")
+        
+        var currentState = Int.random(in: 0..<numStates)
+        
+        for _ in 0..<10 {
+            let action = Int.random(in: 0..<numActions)
+            let reward: Float = Float.random(in: 0..<10)
+            let nextState = Int.random(in: 0..<numStates)
+            
+            // Use the corrected maxQValue function to get the max Q for the next state
+            let maxNextQ = qTable.maxQValue(forState: nextState)
+            
+            // Update Q-value for (currentState, action)
+            let qTablePointer = qTable.qTableBuffer.contents().bindMemory(to: Float.self, capacity: numStates * numActions)
+            let oldQ = qTablePointer[currentState * numActions + action]
+            let newQ = oldQ + learningRate * (reward + discountFactor * maxNextQ - oldQ)
+            qTablePointer[currentState * numActions + action] = newQ
+            
+            print("State: \(currentState), Action: \(action), Reward: \(reward), Next State: \(nextState), New Q: \(newQ)")
+            
+            currentState = nextState
+        }
+    }
+    
+    // Print final Q-table values for inspection
+    let finalQTablePointer = qTable.qTableBuffer.contents().bindMemory(to: Float.self, capacity: numStates * numActions)
+    print("\nFinal Q-Table:")
+    for state in 0..<numStates {
+        for action in 0..<numActions {
+            print("Q(\(state), \(action)) = \(finalQTablePointer[state * numActions + action])")
+        }
+    }
+}
+
+testQLearning()
 
 
 
