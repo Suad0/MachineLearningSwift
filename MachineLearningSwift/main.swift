@@ -8,6 +8,8 @@
 import Foundation
 import Metal
 
+import CoreML
+
 func testNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int ){
     
     let neuralNetwork = NeuralNetwork(inputSize: inputSize, hiddenSize: hiddenSize, outputSize: outputSize)
@@ -22,6 +24,7 @@ func testNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int ){
     
     // Test the neural network
     print("Testing neural network predictions:")
+    
     for input in inputs {
         let predicted = neuralNetwork.predict(input)
         print("Input: \(input) => Predicted: \(predicted)")
@@ -31,6 +34,7 @@ func testNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int ){
 }
 
 func test_KNN(){
+    
     let knn = KNearestNeighbors(k: 3)
     
     let trainingData: [[Double]] = [
@@ -379,20 +383,103 @@ func testQLearning() {
     }
 }
 
-testQLearning()
+//testQLearning()
+
+
+
+/*
+ func chatBotMain() {
+ do {
+ let chatbot = try Chatbot()
+ if let tag = chatbot.predictTag(for: "what is project managment") {
+ print("Predicted Tag: \(tag)")
+ } else {
+ print("No tag matched.")
+ }
+ } catch {
+ print("Error initializing Chatbot: \(error)")
+ }
+ }
+ */
+
+func chatBotMain() {
+    
+    do {
+        let chatbot = try Chatbot()
+        chatbot.chat()
+    } catch {
+        print("[ERROR] Failed to initialize chatbot: \(error)")
+    }
+}
+
+/*
+ 
+ func chatBotLSTM() {
+ do {
+ let coreMLModel = try chatbot_model(configuration: MLModelConfiguration())
+ if let chatbot = try? ChatBotLSTM(coreMLModel: coreMLModel, lstmInputSize: 100, lstmHiddenSize: 734) {
+ print("LSTM Chatbot initialized successfully.")
+ chatbot.chat()
+ } else {
+ print("Failed to initialize ChatBotLSTM.")
+ }
+ } catch {
+ print("Error initializing CoreML model: \(error)")
+ }
+ }
+ 
+ */
+
+
+func chatBotLSTM() {
+    do {
+        
+        let coreMLModel = try chatbot_model(configuration: MLModelConfiguration())
+        
+        if let chatbot = ChatBotLSTM(coreMLModel: coreMLModel,
+                                     lstmInputSize: 100,
+                                     lstmHiddenSize: 734) {
+            print("LSTM Chatbot initialized successfully.")
+            chatbot.chat()
+        } else {
+            print("Failed to initialize ChatBotLSTM.")
+        }
+    } catch {
+        print("Error initializing CoreML model: \(error)")
+    }
+}
+
+
+
+chatBotLSTM()
 
 
 
 
+//chatBotMain()
 
-
-
-
-
-
-
-
-
-
+func testTalkingChatBot() {
+    do {
+        // Initialize the CoreML model
+        let coreMLModel = try chatbot_model(configuration: MLModelConfiguration())
+        
+        // Create an instance of ChatBotLSTMTalking
+        if let talkingChatBot = ChatBotLSTMTalking(coreMLModel: coreMLModel,
+                                                   lstmInputSize: 100,
+                                                   lstmHiddenSize: 734) {
+            print("Talking Chatbot initialized successfully.")
+            
+            // Start the chatbot
+            talkingChatBot.chat()
+            
+            // Keep the program running to listen for input
+            RunLoop.main.run()
+        } else {
+            print("Failed to initialize ChatBotLSTMTalking.")
+        }
+    } catch {
+        print("Error initializing CoreML model: \(error)")
+    }
+}
 
 
