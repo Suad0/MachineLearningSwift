@@ -451,7 +451,7 @@ func chatBotLSTM() {
 
 
 
-chatBotLSTM()
+//chatBotLSTM()
 
 
 
@@ -481,5 +481,69 @@ func testTalkingChatBot() {
         print("Error initializing CoreML model: \(error)")
     }
 }
+
+
+func testTensorANDAutoGrad(){
+    do {
+        // Matrix Multiplication
+        let a = Tensor([[1.0, 2.0], [3.0, 4.0]])
+        let b = Tensor([[2.0, 0.0], [1.0, 3.0]])
+        
+        let c = try a.matmul(b)
+        print("Matrix Multiplication Result:")
+        print(c.value)
+        
+        // Trigonometric Operations
+        let x = Tensor([[0.0, Float.pi/2], [Float.pi, 0.0]])
+        let sinX = x.sin()
+        let cosX = x.cos()
+        
+        print("\nTrigonometric Operations:")
+        print("Sin(x):", sinX.value)
+        print("Cos(x):", cosX.value)
+        
+        // Logarithmic Operations
+        let y = Tensor([[1.0, 2.0], [3.0, 4.0]])
+        let logY = try y.log()
+        
+        print("\nLogarithmic Operations:")
+        print("Log(y):", logY.value)
+        
+    } catch let error as TensorError {
+        switch error {
+        case .dimensionMismatch(let message):
+            print("Dimension Error: \(message)")
+        case .invalidOperation(let message):
+            print("Operation Error: \(message)")
+        }
+    } catch {
+        print(" An unexpected error occurred: \(error)")
+    }
+    
+    let x = Tensor(3.0)
+    let y = Tensor(2.0)
+    
+    let z = x * y + y
+    z.backward()
+    
+    print("Scalar Tensor Example:")
+    print("Value of z: \(z.value)")
+    print("Gradient of x: \(x.grad)")
+    print("Gradient of y: \(y.grad)")
+    
+    // Multi-dimensional tensor
+    let a = Tensor([[1.0, 2.0], [3.0, 4.0]])
+    let b = Tensor([[2.0, 3.0], [4.0, 5.0]])
+    
+    let c = a * b + b
+    c.backward()
+    
+    print("\nMulti-dimensional Tensor Example:")
+    print("Value of c: \(c.value)")
+    print("Gradient of a: \(a.grad)")
+    print("Gradient of b: \(b.grad)")
+}
+
+testTensorANDAutoGrad()
 
 

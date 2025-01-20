@@ -12,6 +12,7 @@
 		112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112270CF2C77D1F00099B5BF /* VectorStore.swift */; };
 		1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122EB4C2C071D180083D697 /* DecisionTree.swift */; };
 		113246B82CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */; };
+		1133AE862D3E3E0F001FAC0A /* Tensor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1133AE852D3E3E0F001FAC0A /* Tensor.swift */; };
 		113811BA2D19F74000EA73C4 /* ChatBotLSTMTalking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113811B92D19F74000EA73C4 /* ChatBotLSTMTalking.swift */; };
 		1138E16E2C0528260008BE23 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E16D2C0528260008BE23 /* main.swift */; };
 		1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138E1742C0528CD0008BE23 /* LogisticRegression.swift */; };
@@ -47,6 +48,7 @@
 		112270CF2C77D1F00099B5BF /* VectorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorStore.swift; sourceTree = "<group>"; };
 		1122EB4C2C071D180083D697 /* DecisionTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionTree.swift; sourceTree = "<group>"; };
 		113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
+		1133AE852D3E3E0F001FAC0A /* Tensor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tensor.swift; sourceTree = "<group>"; };
 		113811B92D19F74000EA73C4 /* ChatBotLSTMTalking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBotLSTMTalking.swift; sourceTree = "<group>"; };
 		1138E16A2C0528260008BE23 /* MachineLearningSwift */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MachineLearningSwift; sourceTree = BUILT_PRODUCTS_DIR; };
 		1138E16D2C0528260008BE23 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 				11AF24132D03879500517E49 /* Tokenizer.swift */,
 				1101C3DE2D10DBD4000645A8 /* Transformer.swift */,
 				11AB83582D3901C0002489B2 /* GPT.swift */,
+				1133AE852D3E3E0F001FAC0A /* Tensor.swift */,
 			);
 			path = MachineLearningSwift;
 			sourceTree = "<group>";
@@ -179,6 +182,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1133AE862D3E3E0F001FAC0A /* Tensor.swift in Sources */,
 				1101C3DF2D10DBD4000645A8 /* Transformer.swift in Sources */,
 				1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */,
 				11B060122D3A521F00F2A42C /* xLSTMCell.swift in Sources */,
