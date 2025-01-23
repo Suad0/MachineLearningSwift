@@ -7,17 +7,20 @@
 
 import Foundation
 
+
 enum TensorError: Error {
     case dimensionMismatch(message: String)
     case invalidOperation(message: String)
 }
 
 class Tensor: Hashable {
-    // Use a multi-dimensional array for values
+    
     var value: [[Float]]
     var grad: [[Float]]
     var gradFn: (() -> Void)?
     var requires_grad: Bool
+    
+    
     
     // Computation graph tracking
     var children: [Tensor] = []
@@ -242,10 +245,15 @@ class Tensor: Hashable {
     }
     
     
+    func createNeuralNetworkLayer(inputSize: Int, outputSize: Int) -> (weights: Tensor, bias: Tensor) {
+        let weights = Tensor.xavier(rows: inputSize, cols: outputSize)
+        let bias = Tensor(Array(repeating: Array(repeating: 0.0, count: outputSize), count: 1))
+        return (weights, bias)
+    }
+    
+    
     
 }
-
-
 
 
 
@@ -350,30 +358,168 @@ func pow(_ tensor: Tensor, _ power: Float) -> Tensor {
     return result
 }
 
-// Example Usage
-func testTensor() {
-    // Scalar tensor
-    let x = Tensor(3.0)
-    let y = Tensor(2.0)
+extension Tensor {
     
-    let z = x * y + y
-    z.backward()
+    /// Activation Functions
     
-    print("Scalar Tensor Example:")
-    print("Value of z: \(z.value)")
-    print("Gradient of x: \(x.grad)")
-    print("Gradient of y: \(y.grad)")
+    // ReLU (Rectified Linear Unit) Activation
+    func relu() -> Tensor {
+        let result = Tensor(
+            value.map { row in
+                row.map { max(0, $0) }
+            }
+        )
+        
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        self.grad[i][j] += self.value[i][j] > 0 ? result.grad[i][j] : 0
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
     
-    // Multi-dimensional tensor
-    let a = Tensor([[1.0, 2.0], [3.0, 4.0]])
-    let b = Tensor([[2.0, 3.0], [4.0, 5.0]])
+    // Sigmoid Activation
+    func sigmoid() -> Tensor {
+        let result = Tensor(
+            value.map { row in
+                row.map { 1 / (1 + exp(-$0)) }
+            }
+        )
+        
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        let sigmoid = result.value[i][j]
+                        self.grad[i][j] += sigmoid * (1 - sigmoid) * result.grad[i][j]
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
     
-    let c = a * b + b
-    c.backward()
+    // Tanh Activation
+    func tanh() -> Tensor {
+        let result = Tensor(
+            value.map { row in
+                row.map { Foundation.tanh($0) }
+            }
+        )
+        
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        let tanhValue = result.value[i][j]
+                        self.grad[i][j] += (1 - tanhValue * tanhValue) * result.grad[i][j]
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
     
-    print("\nMulti-dimensional Tensor Example:")
-    print("Value of c: \(c.value)")
-    print("Gradient of a: \(a.grad)")
-    print("Gradient of b: \(b.grad)")
+    /// Statistical Operations
+    
+    func mean() -> Tensor {
+        let totalSum = value.flatMap { $0 }.reduce(0, +)
+        let count = value.count * value[0].count
+        let meanValue = totalSum / Float(count)
+        
+        let result = Tensor(meanValue)
+        
+        result.gradFn = {
+            if self.requires_grad {
+                let gradientValue = result.grad[0][0] / Float(self.value.count * self.value[0].count)
+                
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        self.grad[i][j] += gradientValue
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
+    
+    // Standard Deviation
+    func std() -> Tensor {
+        let mean = self.mean().value[0][0]
+        
+        let variance = value.flatMap { row in
+            row.map { pow($0 - mean, 2) }
+        }.reduce(0, +) / Float(value.count * value[0].count)
+        
+        let stdDev = sqrt(variance)
+        
+        let result = Tensor(stdDev)
+        
+        result.gradFn = {
+            if self.requires_grad {
+                let gradientValue = result.grad[0][0]
+                
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        self.grad[i][j] += gradientValue * (self.value[i][j] - mean) / (stdDev * Float(self.value.count * self.value[0].count))
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
+    
+    /// Initialization Methods
+    
+    static func xavier(rows: Int, cols: Int) -> Tensor {
+        let limit = sqrt(6.0 / Float(rows + cols))
+        let randomValues = (0..<rows).map { _ in
+            (0..<cols).map { _ in
+                Float.random(in: -limit...limit)
+            }
+        }
+        return Tensor(randomValues)
+    }
+    
+    // He initialization (for ReLU networks)
+    static func he(rows: Int, cols: Int) -> Tensor {
+        let stddev = sqrt(2.0 / Float(rows))
+        let randomValues = (0..<rows).map { _ in
+            (0..<cols).map { _ in
+                Float.random(in: -stddev...stddev)
+            }
+        }
+        return Tensor(randomValues)
+    }
+    
+    /// Regularization Methods
+    
+    // L1 Regularization (Lasso)
+    func l1Regularization(lambda: Float) -> Float {
+        return lambda * value.flatMap { $0 }.reduce(0) { $0 + abs($1) }
+    }
+    
+    // L2 Regularization (Ridge)
+    func l2Regularization(lambda: Float) -> Float {
+        return lambda * value.flatMap { $0 }.reduce(0) { $0 + $1 * $1 }
+    }
+    
+    
+    
+    
 }
 

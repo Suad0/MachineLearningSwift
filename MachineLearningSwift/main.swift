@@ -544,6 +544,182 @@ func testTensorANDAutoGrad(){
     print("Gradient of b: \(b.grad)")
 }
 
-testTensorANDAutoGrad()
+//testTensorANDAutoGrad()
+
+func advancedTensorTest() {
+    // Activation Functions
+    let x = Tensor([[1.0, -2.0, 3.0]])
+    let reluResult = x.relu()
+    let sigmoidResult = x.sigmoid()
+    let tanhResult = x.tanh()
+    
+    print("ReLU Result: \(reluResult.value)")
+    print("Sigmoid Result: \(sigmoidResult.value)")
+    print("Tanh Result: \(tanhResult.value)")
+    
+    // Statistical Operations
+    let stats = Tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])
+    let mean = stats.mean()
+    let std = stats.std()
+    
+    print("Mean: \(mean.value)")
+    print("Standard Deviation: \(std.value)")
+    
+    // Layer Initialization
+    let (weights, bias) = x.createNeuralNetworkLayer(inputSize: 10, outputSize: 5)
+    print("Weights Shape: \(weights.value.count)x\(weights.value[0].count)")
+    print("Bias Shape: \(bias.value.count)x\(bias.value[0].count)")
+}
+
+//advancedTensorTest()
+
+
+func testTransformer() {
+    do {
+        // Create transformer configuration
+        let config = try Transformer.TransformerConfiguration(
+            inputSize: 512,
+            hiddenSize: 512,
+            outputSize: 512,
+            numHeads: 8,
+            ffHiddenSize: 2048
+        )
+        
+        // Initialize transformer
+        let transformer = try Transformer(config: config)
+        
+        // Test positional encoding
+        let positionalEncodings = [
+            try transformer.positionalEncoding(sequenceLength: 10, embeddingSize: 512, type: .sinusoidal),
+            try transformer.positionalEncoding(sequenceLength: 10, embeddingSize: 512, type: .learned),
+            try transformer.positionalEncoding(sequenceLength: 10, embeddingSize: 512, type: .hybrid)
+        ]
+        
+        print("Positional Encodings Generated: \(positionalEncodings.count)")
+        
+        // Create sample input matrices
+        let inputSequence = (0..<10).map { _ in
+            (0..<512).map { _ in Double.random(in: -1...1) }
+        }
+        
+        // Test multi-head attention
+        let attentionOutput = try transformer.multiHeadAttention(
+            query: inputSequence,
+            key: inputSequence,
+            value: inputSequence
+        )
+        
+        print("Multi-Head Attention Output Size: \(attentionOutput.count)x\(attentionOutput[0].count)")
+        
+        // Test encoder layer
+        let encoderOutput = try transformer.encoderLayer(input: inputSequence)
+        
+        print("Encoder Layer Output Size: \(encoderOutput.count)x\(encoderOutput[0].count)")
+        
+        print("Transformer Test Completed Successfully!")
+    } catch {
+        print("Transformer Test Failed: \(error)")
+    }
+}
+
+//testTransformer()
+
+
+func visualizeTransformerBehavior() {
+    do {
+        // Create more detailed configuration
+        let config = try Transformer.TransformerConfiguration(
+            inputSize: 512,
+            hiddenSize: 512,
+            outputSize: 512,
+            numHeads: 8,
+            ffHiddenSize: 2048,
+            dropout: 0.1
+        )
+        
+        let transformer = try Transformer(config: config)
+        
+        // Generate a sample input sequence
+        let inputSequence = (0..<10).map { pos in
+            (0..<512).map { dim in
+                sin(Double(pos) * 0.1 + Double(dim) * 0.01)
+            }
+        }
+        
+        // Visualization of different transformer components
+        struct TransformerComponentAnalysis {
+            let name: String
+            let inputShape: String
+            let outputShape: String
+            let statisticalProperties: (mean: Double, variance: Double, min: Double, max: Double)
+        }
+        
+        var analyses: [TransformerComponentAnalysis] = []
+        
+        // Positional Encoding Analysis
+        let sinusoidalEncoding = try transformer.positionalEncoding(
+            sequenceLength: inputSequence.count,
+            embeddingSize: inputSequence[0].count,
+            type: .sinusoidal
+        )
+        analyses.append(TransformerComponentAnalysis(
+            name: "Positional Encoding",
+            inputShape: "\(inputSequence.count)x\(inputSequence[0].count)",
+            outputShape: "\(sinusoidalEncoding.count)x\(sinusoidalEncoding[0].count)",
+            statisticalProperties: computeMatrixStatistics(sinusoidalEncoding)
+        ))
+        
+        // Multi-Head Attention Analysis
+        let attentionOutput = try transformer.multiHeadAttention(
+            query: inputSequence,
+            key: inputSequence,
+            value: inputSequence
+        )
+        analyses.append(TransformerComponentAnalysis(
+            name: "Multi-Head Attention",
+            inputShape: "\(inputSequence.count)x\(inputSequence[0].count)",
+            outputShape: "\(attentionOutput.count)x\(attentionOutput[0].count)",
+            statisticalProperties: computeMatrixStatistics(attentionOutput)
+        ))
+        
+        // Encoder Layer Analysis
+        let encoderOutput = try transformer.encoderLayer(input: inputSequence)
+        analyses.append(TransformerComponentAnalysis(
+            name: "Encoder Layer",
+            inputShape: "\(inputSequence.count)x\(inputSequence[0].count)",
+            outputShape: "\(encoderOutput.count)x\(encoderOutput[0].count)",
+            statisticalProperties: computeMatrixStatistics(encoderOutput)
+        ))
+        
+        // Print Visualization Results
+        print("🔍 Transformer Component Analysis:")
+        for analysis in analyses {
+            print("\n\(analysis.name):")
+            print("  Input Shape: \(analysis.inputShape)")
+            print("  Output Shape: \(analysis.outputShape)")
+            print("  Statistical Properties:")
+            print("    Mean: \(String(format: "%.4f", analysis.statisticalProperties.mean))")
+            print("    Variance: \(String(format: "%.4f", analysis.statisticalProperties.variance))")
+            print("    Min: \(String(format: "%.4f", analysis.statisticalProperties.min))")
+            print("    Max: \(String(format: "%.4f", analysis.statisticalProperties.max))")
+        }
+    } catch {
+        print("Visualization Error: \(error)")
+    }
+}
+
+// Helper function to compute matrix statistics
+func computeMatrixStatistics(_ matrix: [[Double]]) -> (mean: Double, variance: Double, min: Double, max: Double) {
+    let flattenedMatrix = matrix.flatMap { $0 }
+    
+    let mean = flattenedMatrix.reduce(0, +) / Double(flattenedMatrix.count)
+    let variance = flattenedMatrix.map { pow($0 - mean, 2) }.reduce(0, +) / Double(flattenedMatrix.count)
+    let min = flattenedMatrix.min() ?? 0
+    let max = flattenedMatrix.max() ?? 0
+    
+    return (mean, variance, min, max)
+}
+
+visualizeTransformerBehavior()
 
 
