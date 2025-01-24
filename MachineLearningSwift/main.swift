@@ -451,7 +451,7 @@ func chatBotLSTM() {
 
 
 
-//chatBotLSTM()
+chatBotLSTM()
 
 
 
@@ -720,6 +720,6 @@ func computeMatrixStatistics(_ matrix: [[Double]]) -> (mean: Double, variance: D
     return (mean, variance, min, max)
 }
 
-visualizeTransformerBehavior()
+//visualizeTransformerBehavior()
 
 
