@@ -8,6 +8,7 @@
 import Foundation
 
 class Tokenizer {
+    
     private var wordIndex: [String: Int] = [:]
     private var tagIndex: [String: Int] = [:]
     private var intents: [Intent] = []

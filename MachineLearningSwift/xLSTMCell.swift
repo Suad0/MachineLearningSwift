@@ -5,10 +5,15 @@
 //  Created by Suad Demiri on 17.01.25.
 //
 
+
+
+
 import Foundation
 import Accelerate
 
 class xLSTMCell {
+    
+     
     
     // Network architecture parameters
     private let inputSize: Int
@@ -34,12 +39,14 @@ class xLSTMCell {
     private var lastInput: [Float] = []
     private var lastOutputs: [[Float]] = []
     
-    init(inputSize: Int,
-         hiddenSize: Int,
-         memorySize: Int,
-         learningRate: Float = 0.001,
-         l2RegFactor: Float = 1e-5,
-         gradClipThreshold: Float = 1.0) {
+    required init(
+        inputSize: Int,
+        hiddenSize: Int,
+        memorySize: Int,
+        learningRate: Float = 0.001,
+        l2RegFactor: Float = 1e-5,
+        gradClipThreshold: Float = 1.0
+    ) {
         self.inputSize = inputSize
         self.hiddenSize = hiddenSize
         self.memorySize = memorySize
@@ -47,24 +54,25 @@ class xLSTMCell {
         self.l2RegularizationFactor = l2RegFactor
         self.gradientClippingThreshold = gradClipThreshold
         
-        // Weight initialization with Xavier method
         func xavierInitialize(inputSize: Int, outputSize: Int) -> [Float] {
             let limit = sqrt(6.0 / Float(inputSize + outputSize))
             return (0..<inputSize * outputSize).map { _ in Float.random(in: -limit...limit) }
         }
         
-        Wf = xavierInitialize(inputSize: inputSize + hiddenSize, outputSize: hiddenSize)
-        Wi = xavierInitialize(inputSize: inputSize + hiddenSize, outputSize: hiddenSize)
-        Wo = xavierInitialize(inputSize: inputSize + hiddenSize, outputSize: hiddenSize)
+        // Initialize weights with correct dimensions
+        Wf = xavierInitialize(inputSize: inputSize + hiddenSize, outputSize: memorySize)
+        Wi = xavierInitialize(inputSize: inputSize + hiddenSize, outputSize: memorySize)
+        Wo = xavierInitialize(inputSize: inputSize + hiddenSize, outputSize: hiddenSize) // Now hiddenSize
         Wv = xavierInitialize(inputSize: inputSize, outputSize: memorySize)
         Wk = xavierInitialize(inputSize: inputSize, outputSize: memorySize)
         Wq = xavierInitialize(inputSize: inputSize, outputSize: memorySize)
         
-        bf = [Float](repeating: 0, count: hiddenSize)
-        bi = [Float](repeating: 0, count: hiddenSize)
-        bo = [Float](repeating: 0, count: hiddenSize)
+        // Initialize biases with correct sizes
+        bf = [Float](repeating: 0, count: memorySize)
+        bi = [Float](repeating: 0, count: memorySize)
+        bo = [Float](repeating: 0, count: hiddenSize) // Now hiddenSize
         
-        // Initialize gradient storage
+        // Initialize gradient storage (unchanged)
         gradWf = [Float](repeating: 0, count: Wf.count)
         gradWi = [Float](repeating: 0, count: Wi.count)
         gradWo = [Float](repeating: 0, count: Wo.count)
@@ -75,6 +83,7 @@ class xLSTMCell {
         gradbi = [Float](repeating: 0, count: bi.count)
         gradbo = [Float](repeating: 0, count: bo.count)
         
+        // Initialize hidden state and memory cell
         h = [Float](repeating: 0, count: hiddenSize)
         C = [Float](repeating: 0, count: memorySize * memorySize)
     }
@@ -100,23 +109,33 @@ class xLSTMCell {
         
         let concat = h + input
         
-        // Compute gates with exponential and sigmoid activations
-        let ft = computeExponentialGate(Wf, concat, bf)
-        let it = computeExponentialGate(Wi, concat, bi)
-        let ot = computeSigmoidGate(Wo, concat, bo)
+        // Corrected gate activations (sigmoid)
+        let ft = computeGate(Wf, concat, bf, rowsA: memorySize, activation: { 1.0 / (1.0 + exp(-$0)) })
+        let it = computeGate(Wi, concat, bi, rowsA: memorySize, activation: { 1.0 / (1.0 + exp(-$0)) })
+        let ot = computeGate(Wo, concat, bo, rowsA: hiddenSize, activation: { 1.0 / (1.0 + exp(-$0)) })
         
-        // Compute key, value, query vectors
-        let vt = matrixMultiply(Wv, input, rowsA: memorySize, colsA: inputSize, colsB: 1)
-        let kt = matrixMultiply(Wk, input, rowsA: memorySize, colsA: inputSize, colsB: 1)
-        let qt = matrixMultiply(Wq, input, rowsA: memorySize, colsA: inputSize, colsB: 1)
+        // Bounded value/key/query with tanh
+        let vt = tanh(matrixMultiply(Wv, input, rowsA: memorySize, colsA: inputSize, colsB: 1))
+        let kt = tanh(matrixMultiply(Wk, input, rowsA: memorySize, colsA: inputSize, colsB: 1))
+        let qt = tanh(matrixMultiply(Wq, input, rowsA: memorySize, colsA: inputSize, colsB: 1))
         
-        // Update matrix memory cell
         updateMemoryCell(ft: ft, it: it, vt: vt, kt: kt)
         
-        // Compute hidden state
+        // Improved normalization with L2 norm
         h = computeHiddenState(ot: ot, qt: qt)
-        
         return h
+    }
+
+    private func computeHiddenState(ot: [Float], qt: [Float]) -> [Float] {
+        let Ctq = (0..<memorySize).map { i in
+            (0..<memorySize).reduce(0) { result, j in
+                result + C[i * memorySize + j] * qt[j]
+            }
+        }
+        let norm = sqrt(Ctq.reduce(0) { $0 + $1 * $1 }) + 1e-7 // L2 norm
+        return zip(ot, Ctq).map { (gate, value) in
+            gate * (value / norm)
+        }
     }
     
     // Backpropagation through time (BPTT)
@@ -166,7 +185,7 @@ class xLSTMCell {
             }
         }
         
-
+        
         
         clipGradients(&gradWf)
         clipGradients(&gradWi)
@@ -231,16 +250,12 @@ class xLSTMCell {
     }
     
     // Utility methods
-    private func computeExponentialGate(_ W: [Float], _ concat: [Float], _ b: [Float]) -> [Float] {
-        return W.indices.map { i in
-            exp(W[i] * concat[i % concat.count] + b[i % b.count])
-        }
+    private func computeExponentialGate(_ W: [Float], _ concat: [Float], _ b: [Float], rowsA: Int) -> [Float] {
+        return computeGate(W, concat, b, rowsA: rowsA, activation: exp)
     }
     
-    private func computeSigmoidGate(_ W: [Float], _ concat: [Float], _ b: [Float]) -> [Float] {
-        return W.indices.map { i in
-            1.0 / (1.0 + exp(-W[i] * concat[i % concat.count] - b[i % b.count]))
-        }
+    private func computeSigmoidGate(_ W: [Float], _ concat: [Float], _ b: [Float], rowsA: Int) -> [Float] {
+        return computeGate(W, concat, b, rowsA: rowsA, activation: { 1.0 / (1.0 + exp(-$0)) })
     }
     
     
@@ -285,7 +300,6 @@ class xLSTMCell {
     
     // Comprehensive gradient accumulation
     private func accumulateGradients(dh: [Float], input: [Float]) {
-        // Detailed gradient computation for weights and biases
         let concat = h + input
         
         // Gradient for forget gate weights
@@ -306,15 +320,38 @@ class xLSTMCell {
         gradbf = dh
         gradbi = dh
         gradbo = dh
+        
+        // Gradient for memory matrix C
+        var dC = [Float](repeating: 0, count: memorySize * memorySize)
+        for i in 0..<memorySize {
+            for j in 0..<memorySize {
+                dC[i * memorySize + j] = dh[i] * C[i * memorySize + j]
+            }
+        }
+        
+        // Accumulate gradients for Wv, Wk, Wq based on dC
+        // (This is a simplified example; you may need to adjust based on your specific architecture)
+        gradWv = matrixMultiply(dC, input, rowsA: memorySize, colsA: memorySize, colsB: inputSize)
+        gradWk = matrixMultiply(dC, input, rowsA: memorySize, colsA: memorySize, colsB: inputSize)
+        gradWq = matrixMultiply(dC, input, rowsA: memorySize, colsA: memorySize, colsB: inputSize)
     }
     
     // Advanced Adam optimization method
-    private func optimizeWithAdam(
-        hyperparameters: OptimizerType.Hyperparameters = .init(learningRate: 0.001)
-    ) {
-        var mW = [Float](repeating: 0, count: Wf.count)
-        var vW = [Float](repeating: 0, count: Wf.count)
-        let t = 1
+    private func optimizeWithAdam(hyperparameters: OptimizerType.Hyperparameters = .init(learningRate: 0.001)) {
+        var mWf = [Float](repeating: 0, count: Wf.count)
+        var vWf = [Float](repeating: 0, count: Wf.count)
+        var mWi = [Float](repeating: 0, count: Wi.count)
+        var vWi = [Float](repeating: 0, count: Wi.count)
+        var mWo = [Float](repeating: 0, count: Wo.count)
+        var vWo = [Float](repeating: 0, count: Wo.count)
+        var mWv = [Float](repeating: 0, count: Wv.count)
+        var vWv = [Float](repeating: 0, count: Wv.count)
+        var mWk = [Float](repeating: 0, count: Wk.count)
+        var vWk = [Float](repeating: 0, count: Wk.count)
+        var mWq = [Float](repeating: 0, count: Wq.count)
+        var vWq = [Float](repeating: 0, count: Wq.count)
+        
+        var t = 1
         
         func adamUpdate(_ weights: inout [Float], _ gradients: [Float], _ m: inout [Float], _ v: inout [Float]) {
             for i in 0..<weights.count {
@@ -334,18 +371,22 @@ class xLSTMCell {
         }
         
         // Apply Adam to different weight matrices
-        adamUpdate(&Wf, gradWf, &mW, &vW)
-        adamUpdate(&Wi, gradWi, &mW, &vW)
-        adamUpdate(&Wo, gradWo, &mW, &vW)
-        adamUpdate(&Wv, gradWv, &mW, &vW)
-        adamUpdate(&Wk, gradWk, &mW, &vW)
-        adamUpdate(&Wq, gradWq, &mW, &vW)
+        adamUpdate(&Wf, gradWf, &mWf, &vWf)
+        adamUpdate(&Wi, gradWi, &mWi, &vWi)
+        adamUpdate(&Wo, gradWo, &mWo, &vWo)
+        adamUpdate(&Wv, gradWv, &mWv, &vWv)
+        adamUpdate(&Wk, gradWk, &mWk, &vWk)
+        adamUpdate(&Wq, gradWq, &mWq, &vWq)
+        
+        t += 1
     }
     
     // Detailed gradient computation methods
     private func computeGateGradient(_ dh: [Float], _ W: [Float], _ concat: [Float], _ b: [Float]) -> [Float] {
-        return W.indices.map { i in
-            dh[i % dh.count] * concat[i % concat.count] * (1 - b[i % b.count])
+        let rowsA = W.count / (inputSize + hiddenSize) // Calculate based on weight matrix dimensions
+        let gateOutput = computeSigmoidGate(W, concat, b, rowsA: rowsA)
+        return zip(gateOutput, dh).map { gate, grad in
+            gate * (1 - gate) * grad
         }
     }
     
@@ -392,32 +433,54 @@ class xLSTMCell {
     }
     
     private func updateMemoryCell(ft: [Float], it: [Float], vt: [Float], kt: [Float]) {
+        // Debug: Print sizes of input arrays
+        print("ft size: \(ft.count), it size: \(it.count), vt size: \(vt.count), kt size: \(kt.count)")
+        print("C size: \(C.count), memorySize: \(memorySize)")
+        
+        // Ensure all arrays have the correct size
+        guard ft.count == memorySize,
+              it.count == memorySize,
+              vt.count == memorySize,
+              kt.count == memorySize,
+              C.count == memorySize * memorySize else {
+            fatalError("Array size mismatch in updateMemoryCell")
+        }
+        
+        // Update memory cell using forget and input gates
         for i in 0..<memorySize {
             for j in 0..<memorySize {
-                // Update memory cell using forget and input gates
                 C[i * memorySize + j] = ft[i] * C[i * memorySize + j] + it[i] * vt[i] * kt[j]
             }
         }
     }
     
-    // Compute hidden state with normalization
-    private func computeHiddenState(ot: [Float], qt: [Float]) -> [Float] {
-        // Compute weighted sum of memory cell with query vector
-        let Ctq = (0..<memorySize).map { i in
-            (0..<memorySize).reduce(0) { result, j in
-                result + C[i * memorySize + j] * qt[j]
-            }
-        }
-        
-        // Normalization to prevent exploding values
-        let norm = max(Ctq.reduce(0, +), 1e-7)
-        
-        // Apply output gate and normalize
-        return Ctq.enumerated().map { (index, value) in
-            ot[index] * (value / norm)
-        }
+    
+    
+    private func matrixMultiply(_ A: [Float], _ B: [Float], rowsA: Int, colsA: Int, colsB: Int) -> [Float] {
+        var result = [Float](repeating: 0, count: rowsA * colsB)
+        vDSP_mmul(A, 1, B, 1, &result, 1, vDSP_Length(rowsA), vDSP_Length(colsB), vDSP_Length(colsA))
+        return result
     }
+    
+    private func computeGate(
+        _ W: [Float],
+        _ concat: [Float],
+        _ b: [Float],
+        rowsA: Int,
+        activation: (Float) -> Float
+    ) -> [Float] {
+        let weightedSum = matrixMultiply(W, concat, rowsA: rowsA, colsA: inputSize + hiddenSize, colsB: 1)
+        return zip(weightedSum, b).map { activation($0 + $1) }
+    }
+     
+    
+    
+    
+    
+    
 }
+
+
 
 
 

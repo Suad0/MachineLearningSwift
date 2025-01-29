@@ -5,6 +5,36 @@
 //  Created by Suad Demiri on 16.12.24.
 //
 
+
+/*
+ the main issues and areas for improvement are:
+ 
+ Positional Encoding Calculation: The div_term in sinusoidal encoding is incorrect. It should use 10000^(2i/d_model) for even i, but the current code uses i/embeddingSize. This needs to be fixed to match the original paper.
+ 
+ Weight Initialization in Linear Layers: The applyLinearTransformation function initializes new weights every time it's called, which is incorrect. Weights should be model parameters that are learned during training, not reinitialized on each forward pass.
+ 
+ Dropout Application During Inference: Dropout is applied without a training flag, leading to it being active during inference. Need to add a flag to enable/disable dropout based on training mode.
+ 
+ Lack of Masking in Attention: No support for attention masks, which limits the model's applicability to tasks requiring causal masking or padding masks.
+ 
+ Matrix Dimensions Checks: Ensure hiddenSize is divisible by numHeads in configuration. Add checks during initialization.
+ 
+ Use of Accelerate Framework: Optimize more functions (like softmax, layer norm) using Accelerate for better performance.
+ 
+ Parameter Storage and Training Logic: The current code lacks mechanisms for storing parameters, computing gradients, and updating weights. Without this, the model can't be trained.
+ 
+ Data Type: Consider using Float instead of Double for better performance on most hardware.
+ 
+ Residual Connections and Layer Normalization: Verify the order of operations (post-LN vs pre-LN) and ensure it's correctly implemented.
+ 
+ Feed-Forward Network Structure: Ensure the feed-forward network matches the Transformer's standard architecture (two linear layers with ReLU).
+ 
+ Bugs in Multi-Head Attention: The splitHeads and concatenateHeads functions need to correctly handle the head dimensions, especially when hiddenSize isn't perfectly divisible by numHeads.
+ 
+ Initialization of Learned Positional Embeddings: The current initialization might not be optimal; consider using standard embedding initialization techniques.
+ */
+
+
 import Foundation
 import Accelerate
 

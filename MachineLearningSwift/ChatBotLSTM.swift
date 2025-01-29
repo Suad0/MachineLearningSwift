@@ -11,14 +11,14 @@ import CoreML
 class ChatBotLSTM {
     
     private let coreMLModel: chatbot_model
-    private let lstmCell: xLSTMCell
+    private let lstmCell: LSTMCell
     private var tokenizer: Tokenizer
     
         private static let jsonFilePath = "/Users/suad/PycharmProjects/chatbot_flask/data/intents_small.json"
         
         init?(coreMLModel: chatbot_model, lstmInputSize: Int, lstmHiddenSize: Int) {
             self.coreMLModel = coreMLModel
-            self.lstmCell = xLSTMCell(inputSize: lstmInputSize, hiddenSize: lstmHiddenSize, memorySize: 734)
+            self.lstmCell = LSTMCell(inputSize: lstmInputSize, hiddenSize: lstmHiddenSize)
             
             guard let tokenizer = Tokenizer(fromJSONFile: Self.jsonFilePath) else {
                 return nil

@@ -451,7 +451,8 @@ func chatBotLSTM() {
 
 
 
-chatBotLSTM()
+//chatBotLSTM()
+
 
 
 
@@ -722,4 +723,52 @@ func computeMatrixStatistics(_ matrix: [[Double]]) -> (mean: Double, variance: D
 
 //visualizeTransformerBehavior()
 
+
+public func usageXLSTM() {
+    // Initialize the LSTM cell with specific sizes
+    let lstmCell = xLSTMCell(inputSize: 10, hiddenSize: 20, memorySize: 30)
+    
+    // Define a sequence of inputs
+    let inputs: [[Float]] = [
+        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+    ]
+    
+    // Process the input sequence and get the outputs
+    let outputs = lstmCell.processSequence(inputs: inputs)
+    
+    // Print the outputs for inspection
+    print("Outputs after processing the sequence:")
+    for (index, output) in outputs.enumerated() {
+        print("Time step \(index): \(output)")
+    }
+    
+    // Define a target sequence for backpropagation
+    let targetSequence: [[Float]] = [
+        [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+        [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
+    ]
+    
+    // Perform backpropagation to update the weights
+    lstmCell.backpropagate(targetSequence: targetSequence)
+    
+    // Print the updated weights (optional, for debugging)
+    //print("\nUpdated weights after backpropagation:")
+    //print("Wf: \(lstmCell.Wf)")
+    //print("Wi: \(lstmCell.Wi)")
+    //print("Wo: \(lstmCell.Wo)")
+    //print("Wv: \(lstmCell.Wv)")
+    //print("Wk: \(lstmCell.Wk)")
+    //print("Wq: \(lstmCell.Wq)")
+    
+    // Optionally, process the sequence again to see the effect of weight updates
+    let updatedOutputs = lstmCell.processSequence(inputs: inputs)
+    print("\nOutputs after backpropagation and weight updates:")
+    for (index, output) in updatedOutputs.enumerated() {
+        print("Time step \(index): \(output)")
+    }
+}
+
+
+usageXLSTM()
 

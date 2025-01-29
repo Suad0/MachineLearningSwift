@@ -23,7 +23,7 @@
 
 
 import Foundation
-import Accelerate // Useful for matrix multiplications and vector operations
+import Accelerate
 
 // Define a sigmoid activation function
 func sigmoid(_ x: [Float]) -> [Float] {
@@ -44,12 +44,16 @@ func elementWiseAdd(_ a: [Float], _ b: [Float]) -> [Float] {
     return zip(a, b).map(+)
 }
 
+
+
 // Matrix multiply: uses Accelerate framework for fast computations
-func matrixMultiply(_ A: [Float], _ B: [Float], rowsA: Int, colsA: Int, colsB: Int) -> [Float] {
+private func matrixMultiply(_ A: [Float], _ B: [Float], rowsA: Int, colsA: Int, colsB: Int) -> [Float] {
     var C = [Float](repeating: 0.0, count: rowsA * colsB)
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, Int32(rowsA), Int32(colsB), Int32(colsA), 1.0, A, Int32(colsA), B, Int32(colsB), 0.0, &C, Int32(colsB))
     return C
 }
+
+
 
 class LSTMCell {
     
