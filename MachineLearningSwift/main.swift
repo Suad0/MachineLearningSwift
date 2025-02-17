@@ -7,8 +7,10 @@
 
 import Foundation
 import Metal
-
 import CoreML
+import Numerics
+
+
 
 func testNeuralNetwork(inputSize: Int, hiddenSize: Int, outputSize: Int ){
     
@@ -575,141 +577,10 @@ func advancedTensorTest() {
 //advancedTensorTest()
 
 
-func testTransformer() {
-    do {
-        // Create transformer configuration
-        let config = try Transformer.TransformerConfiguration(
-            inputSize: 512,
-            hiddenSize: 512,
-            outputSize: 512,
-            numHeads: 8,
-            ffHiddenSize: 2048
-        )
-        
-        // Initialize transformer
-        let transformer = try Transformer(config: config)
-        
-        // Test positional encoding
-        let positionalEncodings = [
-            try transformer.positionalEncoding(sequenceLength: 10, embeddingSize: 512, type: .sinusoidal),
-            try transformer.positionalEncoding(sequenceLength: 10, embeddingSize: 512, type: .learned),
-            try transformer.positionalEncoding(sequenceLength: 10, embeddingSize: 512, type: .hybrid)
-        ]
-        
-        print("Positional Encodings Generated: \(positionalEncodings.count)")
-        
-        // Create sample input matrices
-        let inputSequence = (0..<10).map { _ in
-            (0..<512).map { _ in Double.random(in: -1...1) }
-        }
-        
-        // Test multi-head attention
-        let attentionOutput = try transformer.multiHeadAttention(
-            query: inputSequence,
-            key: inputSequence,
-            value: inputSequence
-        )
-        
-        print("Multi-Head Attention Output Size: \(attentionOutput.count)x\(attentionOutput[0].count)")
-        
-        // Test encoder layer
-        let encoderOutput = try transformer.encoderLayer(input: inputSequence)
-        
-        print("Encoder Layer Output Size: \(encoderOutput.count)x\(encoderOutput[0].count)")
-        
-        print("Transformer Test Completed Successfully!")
-    } catch {
-        print("Transformer Test Failed: \(error)")
-    }
-}
-
-//testTransformer()
 
 
-func visualizeTransformerBehavior() {
-    do {
-        // Create more detailed configuration
-        let config = try Transformer.TransformerConfiguration(
-            inputSize: 512,
-            hiddenSize: 512,
-            outputSize: 512,
-            numHeads: 8,
-            ffHiddenSize: 2048,
-            dropout: 0.1
-        )
-        
-        let transformer = try Transformer(config: config)
-        
-        // Generate a sample input sequence
-        let inputSequence = (0..<10).map { pos in
-            (0..<512).map { dim in
-                sin(Double(pos) * 0.1 + Double(dim) * 0.01)
-            }
-        }
-        
-        // Visualization of different transformer components
-        struct TransformerComponentAnalysis {
-            let name: String
-            let inputShape: String
-            let outputShape: String
-            let statisticalProperties: (mean: Double, variance: Double, min: Double, max: Double)
-        }
-        
-        var analyses: [TransformerComponentAnalysis] = []
-        
-        // Positional Encoding Analysis
-        let sinusoidalEncoding = try transformer.positionalEncoding(
-            sequenceLength: inputSequence.count,
-            embeddingSize: inputSequence[0].count,
-            type: .sinusoidal
-        )
-        analyses.append(TransformerComponentAnalysis(
-            name: "Positional Encoding",
-            inputShape: "\(inputSequence.count)x\(inputSequence[0].count)",
-            outputShape: "\(sinusoidalEncoding.count)x\(sinusoidalEncoding[0].count)",
-            statisticalProperties: computeMatrixStatistics(sinusoidalEncoding)
-        ))
-        
-        // Multi-Head Attention Analysis
-        let attentionOutput = try transformer.multiHeadAttention(
-            query: inputSequence,
-            key: inputSequence,
-            value: inputSequence
-        )
-        analyses.append(TransformerComponentAnalysis(
-            name: "Multi-Head Attention",
-            inputShape: "\(inputSequence.count)x\(inputSequence[0].count)",
-            outputShape: "\(attentionOutput.count)x\(attentionOutput[0].count)",
-            statisticalProperties: computeMatrixStatistics(attentionOutput)
-        ))
-        
-        // Encoder Layer Analysis
-        let encoderOutput = try transformer.encoderLayer(input: inputSequence)
-        analyses.append(TransformerComponentAnalysis(
-            name: "Encoder Layer",
-            inputShape: "\(inputSequence.count)x\(inputSequence[0].count)",
-            outputShape: "\(encoderOutput.count)x\(encoderOutput[0].count)",
-            statisticalProperties: computeMatrixStatistics(encoderOutput)
-        ))
-        
-        // Print Visualization Results
-        print("🔍 Transformer Component Analysis:")
-        for analysis in analyses {
-            print("\n\(analysis.name):")
-            print("  Input Shape: \(analysis.inputShape)")
-            print("  Output Shape: \(analysis.outputShape)")
-            print("  Statistical Properties:")
-            print("    Mean: \(String(format: "%.4f", analysis.statisticalProperties.mean))")
-            print("    Variance: \(String(format: "%.4f", analysis.statisticalProperties.variance))")
-            print("    Min: \(String(format: "%.4f", analysis.statisticalProperties.min))")
-            print("    Max: \(String(format: "%.4f", analysis.statisticalProperties.max))")
-        }
-    } catch {
-        print("Visualization Error: \(error)")
-    }
-}
 
-// Helper function to compute matrix statistics
+
 func computeMatrixStatistics(_ matrix: [[Double]]) -> (mean: Double, variance: Double, min: Double, max: Double) {
     let flattenedMatrix = matrix.flatMap { $0 }
     
@@ -721,47 +592,30 @@ func computeMatrixStatistics(_ matrix: [[Double]]) -> (mean: Double, variance: D
     return (mean, variance, min, max)
 }
 
-//visualizeTransformerBehavior()
 
 
 public func usageXLSTM() {
-    // Initialize the LSTM cell with specific sizes
-    let lstmCell = xLSTMCell(inputSize: 10, hiddenSize: 20, memorySize: 30)
+    let lstmCell = xLSTMCell(inputSize: 10, hiddenSize: 20, memorySize: 20)
     
-    // Define a sequence of inputs
     let inputs: [[Float]] = [
         [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
     ]
     
-    // Process the input sequence and get the outputs
     let outputs = lstmCell.processSequence(inputs: inputs)
     
-    // Print the outputs for inspection
     print("Outputs after processing the sequence:")
     for (index, output) in outputs.enumerated() {
         print("Time step \(index): \(output)")
     }
     
-    // Define a target sequence for backpropagation
     let targetSequence: [[Float]] = [
-        [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-        [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
+        [Float](repeating: 0.0, count: 20),
+        [Float](repeating: 0.0, count: 20)
     ]
     
-    // Perform backpropagation to update the weights
     lstmCell.backpropagate(targetSequence: targetSequence)
     
-    // Print the updated weights (optional, for debugging)
-    //print("\nUpdated weights after backpropagation:")
-    //print("Wf: \(lstmCell.Wf)")
-    //print("Wi: \(lstmCell.Wi)")
-    //print("Wo: \(lstmCell.Wo)")
-    //print("Wv: \(lstmCell.Wv)")
-    //print("Wk: \(lstmCell.Wk)")
-    //print("Wq: \(lstmCell.Wq)")
-    
-    // Optionally, process the sequence again to see the effect of weight updates
     let updatedOutputs = lstmCell.processSequence(inputs: inputs)
     print("\nOutputs after backpropagation and weight updates:")
     for (index, output) in updatedOutputs.enumerated() {
@@ -770,5 +624,122 @@ public func usageXLSTM() {
 }
 
 
-usageXLSTM()
+func testTransformer() {
+    do {
+        let config = try Transformer.TransformerConfiguration(
+            inputSize: 4,
+            hiddenSize: 8,
+            outputSize: 4,
+            numHeads: 2,
+            ffHiddenSize: 16,
+            dropout: 0.1,
+            learningRate: 0.001
+        )
+        
+        let transformer = try Transformer(config: config)
+        transformer.setTrainingMode(true)
+        
+        // Test input: batch of 2 sequences, each with 3 tokens of size 4
+        let input: [[Double]] = [
+            [1.0, 2.0, 3.0, 4.0],
+            [0.5, 1.5, 2.5, 3.5],
+            [0.1, 0.2, 0.3, 0.4]
+        ]
+        
+        let encoded = try transformer.encoderLayer(input: input)
+        print("Encoder output shape: [\(encoded.count), \(encoded[0].count)]")
+        print("First token output: \(encoded[0])")
+        
+        assert(encoded.count == input.count)
+        assert(encoded[0].count == config.hiddenSize)
+        print("All tests passed!")
+    } catch {
+        print("Test failed with error: \(error)")
+    }
+}
+
+//testTransformer()
+
+
+
+
+
+
+
+
+func testDifferentialEquations() {
+    print("\n=== ODE SOLVER TEST SUITE ===\n")
+    
+    // Test configuration
+    let testSteps = 5
+    let testTolerance = 1e-6
+    let testGamma = 1.0
+    let testN = 100
+    
+    // Test 1: Euler Method (dy/dx = -2xy)
+    let eulerResult = ODESolver.eulerMethod(x0: 0.0, y0: 1.0, h: 0.1, steps: testSteps) { x, y in
+        -2 * x * y
+    }
+    
+    // Test 2: Runge-Kutta 4th Order
+    let rk4Result = ODESolver.rungeKutta4(x0: 0.0, y0: 1.0, h: 0.1, steps: testSteps) { x, y in
+        -2 * x * y
+    }
+    
+    // Test 3: Adaptive RKF45
+    let rkf45Result = ODESolver.rkf45(x0: 0.0, y0: 1.0, h: 0.1, tolerance: testTolerance, maxSteps: 10) { x, y in
+        -2 * x * y
+    }
+    
+    // Test 4: Simpson's Rule (∫x² dx from 0 to 1)
+    do {
+        let integralResult = try ODESolver.simpsonsRule(a: 0.0, b: 1.0, n: testN) { x in
+            x * x
+        }
+        print("\nNumerical Integration Test:")
+        print(String(format: "∫x² dx from 0 to 1 = %.6f (Expected ≈0.333333)", integralResult))
+    } catch {
+        print("Integration Error: \(error)")
+    }
+    
+    // Test 5: Inverse Laplace Transform (L⁻¹{1/(s²+1)} = sin(t))
+    do {
+        let t = Double.pi/2 // Should get ≈1.0
+        let iltResult = try ODESolver.inverseLaplace(t: t, gamma: testGamma, n: testN) { s in
+            1 / (s * s + 1)
+        }
+        print("\nInverse Laplace Test:")
+        print(String(format: "L⁻¹{1/(s²+1)} at t=π/2 = %.6f (Expected ≈1.000000)", iltResult))
+    } catch {
+        print("Laplace Transform Error: \(error)")
+    }
+    
+    print("\n=== TEST COMPLETE ===\n")
+}
+
+// testDifferentialEquations()
+
+func testAnalysis() {
+    let x = MathExpression.variable("x")
+    let y = MathExpression.variable("y")
+    
+    // Differentiate x^3
+    let expr1 = MathExpression.power(base: x, exponent: .constant(3))
+    let derivative1 = derivative(of: expr1, withRespectTo: "x")
+    print("d/dx \(expr1) = \(derivative1)")  // d/dx ((x)^3.00) = (3.00 * (x)^2.00 * 1.00)
+    
+    // Integrate x^2
+    let integral1 = integral(of: expr1, withRespectTo: "x")
+    print("∫\(expr1) dx = \(integral1)")  // ∫((x)^3.00) dx = ((x)^4.00 / 4.00)
+    
+    // Differentiate sin(x^2)
+    let expr2 = MathExpression.sin(.power(base: x, exponent: .constant(2)))
+    let derivative2 = derivative(of: expr2, withRespectTo: "x")
+    print("d/dx \(expr2) = \(derivative2)")  // d/dx sin((x)^2.00) = (cos((x)^2.00) * (2.00 * (x)^1.00 * 1.00))
+}
+
+testAnalysis()
+
+
+
 

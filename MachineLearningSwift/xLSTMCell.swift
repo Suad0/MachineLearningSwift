@@ -13,9 +13,6 @@ import Accelerate
 
 class xLSTMCell {
     
-     
-    
-    // Network architecture parameters
     private let inputSize: Int
     private let hiddenSize: Int
     private let memorySize: Int
@@ -125,8 +122,13 @@ class xLSTMCell {
         h = computeHiddenState(ot: ot, qt: qt)
         return h
     }
-
+    
     private func computeHiddenState(ot: [Float], qt: [Float]) -> [Float] {
+        
+        guard ot.count == hiddenSize, qt.count == memorySize else {
+                fatalError("Dimension mismatch in computeHiddenState")
+            }
+        
         let Ctq = (0..<memorySize).map { i in
             (0..<memorySize).reduce(0) { result, j in
                 result + C[i * memorySize + j] * qt[j]
@@ -323,17 +325,26 @@ class xLSTMCell {
         
         // Gradient for memory matrix C
         var dC = [Float](repeating: 0, count: memorySize * memorySize)
-        for i in 0..<memorySize {
-            for j in 0..<memorySize {
-                dC[i * memorySize + j] = dh[i] * C[i * memorySize + j]
-            }
+        for (i, cVal) in C.enumerated() {
+            let row = i / memorySize
+            let dhVal = (row < hiddenSize) ? dh[row] : 0
+            dC[i] = dhVal * cVal
         }
         
-        // Accumulate gradients for Wv, Wk, Wq based on dC
-        // (This is a simplified example; you may need to adjust based on your specific architecture)
-        gradWv = matrixMultiply(dC, input, rowsA: memorySize, colsA: memorySize, colsB: inputSize)
-        gradWk = matrixMultiply(dC, input, rowsA: memorySize, colsA: memorySize, colsB: inputSize)
-        gradWq = matrixMultiply(dC, input, rowsA: memorySize, colsA: memorySize, colsB: inputSize)
+        // Compute gradients using outer product
+        gradWv = outerProduct(dC, input)
+        gradWk = outerProduct(dC, input)
+        gradWq = outerProduct(dC, input)
+    }
+    
+    private func outerProduct(_ a: [Float], _ b: [Float]) -> [Float] {
+        var result = [Float](repeating: 0, count: a.count * b.count)
+        for i in 0..<a.count {
+            for j in 0..<b.count {
+                result[i * b.count + j] = a[i] * b[j]
+            }
+        }
+        return result
     }
     
     // Advanced Adam optimization method
@@ -455,7 +466,6 @@ class xLSTMCell {
     }
     
     
-    
     private func matrixMultiply(_ A: [Float], _ B: [Float], rowsA: Int, colsA: Int, colsB: Int) -> [Float] {
         var result = [Float](repeating: 0, count: rowsA * colsB)
         vDSP_mmul(A, 1, B, 1, &result, 1, vDSP_Length(rowsA), vDSP_Length(colsB), vDSP_Length(colsA))
@@ -472,13 +482,11 @@ class xLSTMCell {
         let weightedSum = matrixMultiply(W, concat, rowsA: rowsA, colsA: inputSize + hiddenSize, colsB: 1)
         return zip(weightedSum, b).map { activation($0 + $1) }
     }
-     
-    
-    
-    
     
     
 }
+
+
 
 
 

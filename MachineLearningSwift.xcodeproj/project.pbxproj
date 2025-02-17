@@ -25,7 +25,13 @@
 		11AB83592D3901C0002489B2 /* GPT.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AB83582D3901C0002489B2 /* GPT.swift */; };
 		11AF24142D03879500517E49 /* Tokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AF24132D03879500517E49 /* Tokenizer.swift */; };
 		11B060122D3A521F00F2A42C /* xLSTMCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B060112D3A521F00F2A42C /* xLSTMCell.swift */; };
+		11BD02C72D5F65720008E946 /* DTIProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BD02C62D5F65720008E946 /* DTIProcessor.swift */; };
 		11CFE3EF2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */; };
+		11D9054D2D63E7580053CDA7 /* DifferentialEquation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D9054C2D63E7580053CDA7 /* DifferentialEquation.swift */; };
+		11D905502D63E78A0053CDA7 /* ComplexModule in Frameworks */ = {isa = PBXBuildFile; productRef = 11D9054F2D63E78A0053CDA7 /* ComplexModule */; };
+		11D905522D63E78A0053CDA7 /* Numerics in Frameworks */ = {isa = PBXBuildFile; productRef = 11D905512D63E78A0053CDA7 /* Numerics */; };
+		11D905542D63E78A0053CDA7 /* RealModule in Frameworks */ = {isa = PBXBuildFile; productRef = 11D905532D63E78A0053CDA7 /* RealModule */; };
+		11D905562D63ECEF0053CDA7 /* Analysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D905552D63ECEF0053CDA7 /* Analysis.swift */; };
 		11EA585A2C20B56A00768119 /* MetalNeuralNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */; };
 		11FCF3412CE8F6BB00014C6E /* Chatbot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FCF3402CE8F6BB00014C6E /* Chatbot.swift */; };
 /* End PBXBuildFile section */
@@ -62,7 +68,10 @@
 		11AB83582D3901C0002489B2 /* GPT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPT.swift; sourceTree = "<group>"; };
 		11AF24132D03879500517E49 /* Tokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokenizer.swift; sourceTree = "<group>"; };
 		11B060112D3A521F00F2A42C /* xLSTMCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = xLSTMCell.swift; sourceTree = "<group>"; };
+		11BD02C62D5F65720008E946 /* DTIProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTIProcessor.swift; sourceTree = "<group>"; };
 		11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
+		11D9054C2D63E7580053CDA7 /* DifferentialEquation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifferentialEquation.swift; sourceTree = "<group>"; };
+		11D905552D63ECEF0053CDA7 /* Analysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analysis.swift; sourceTree = "<group>"; };
 		11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalNeuralNetwork.swift; sourceTree = "<group>"; };
 		11FCF3402CE8F6BB00014C6E /* Chatbot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chatbot.swift; sourceTree = "<group>"; };
 		11FCF3422CE9098B00014C6E /* timecapsule.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = timecapsule.txt; sourceTree = "<group>"; };
@@ -73,6 +82,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				11D905522D63E78A0053CDA7 /* Numerics in Frameworks */,
+				11D905502D63E78A0053CDA7 /* ComplexModule in Frameworks */,
+				11D905542D63E78A0053CDA7 /* RealModule in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -120,6 +132,9 @@
 				1101C3DE2D10DBD4000645A8 /* Transformer.swift */,
 				11AB83582D3901C0002489B2 /* GPT.swift */,
 				1133AE852D3E3E0F001FAC0A /* Tensor.swift */,
+				11BD02C62D5F65720008E946 /* DTIProcessor.swift */,
+				11D9054C2D63E7580053CDA7 /* DifferentialEquation.swift */,
+				11D905552D63ECEF0053CDA7 /* Analysis.swift */,
 			);
 			path = MachineLearningSwift;
 			sourceTree = "<group>";
@@ -168,6 +183,9 @@
 				Base,
 			);
 			mainGroup = 1138E1612C0528260008BE23;
+			packageReferences = (
+				11D9054E2D63E78A0053CDA7 /* XCRemoteSwiftPackageReference "swift-numerics" */,
+			);
 			productRefGroup = 1138E16B2C0528260008BE23 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -183,7 +201,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				1133AE862D3E3E0F001FAC0A /* Tensor.swift in Sources */,
+				11D9054D2D63E7580053CDA7 /* DifferentialEquation.swift in Sources */,
 				1101C3DF2D10DBD4000645A8 /* Transformer.swift in Sources */,
+				11BD02C72D5F65720008E946 /* DTIProcessor.swift in Sources */,
 				1138E1792C052C7A0008BE23 /* KNearestNeighbors.swift in Sources */,
 				11B060122D3A521F00F2A42C /* xLSTMCell.swift in Sources */,
 				11A99EF02CB56B2A003D423D /* LSTMCell.swift in Sources */,
@@ -193,6 +213,7 @@
 				11AB83592D3901C0002489B2 /* GPT.swift in Sources */,
 				11AF24142D03879500517E49 /* Tokenizer.swift in Sources */,
 				1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */,
+				11D905562D63ECEF0053CDA7 /* Analysis.swift in Sources */,
 				112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */,
 				113246B82CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift in Sources */,
 				11A99EF22CB56F10003D423D /* MetalLSTMCell.swift in Sources */,
@@ -371,6 +392,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		11D9054E2D63E78A0053CDA7 /* XCRemoteSwiftPackageReference "swift-numerics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-numerics.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		11D9054F2D63E78A0053CDA7 /* ComplexModule */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11D9054E2D63E78A0053CDA7 /* XCRemoteSwiftPackageReference "swift-numerics" */;
+			productName = ComplexModule;
+		};
+		11D905512D63E78A0053CDA7 /* Numerics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11D9054E2D63E78A0053CDA7 /* XCRemoteSwiftPackageReference "swift-numerics" */;
+			productName = Numerics;
+		};
+		11D905532D63E78A0053CDA7 /* RealModule */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 11D9054E2D63E78A0053CDA7 /* XCRemoteSwiftPackageReference "swift-numerics" */;
+			productName = RealModule;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1138E1622C0528260008BE23 /* Project object */;
 }
