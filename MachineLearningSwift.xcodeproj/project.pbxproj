@@ -32,6 +32,7 @@
 		11D905522D63E78A0053CDA7 /* Numerics in Frameworks */ = {isa = PBXBuildFile; productRef = 11D905512D63E78A0053CDA7 /* Numerics */; };
 		11D905542D63E78A0053CDA7 /* RealModule in Frameworks */ = {isa = PBXBuildFile; productRef = 11D905532D63E78A0053CDA7 /* RealModule */; };
 		11D905562D63ECEF0053CDA7 /* Analysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D905552D63ECEF0053CDA7 /* Analysis.swift */; };
+		11E03A5B2D64771700108226 /* Stochastic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E03A5A2D64771700108226 /* Stochastic.swift */; };
 		11EA585A2C20B56A00768119 /* MetalNeuralNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */; };
 		11FCF3412CE8F6BB00014C6E /* Chatbot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FCF3402CE8F6BB00014C6E /* Chatbot.swift */; };
 /* End PBXBuildFile section */
@@ -72,6 +73,7 @@
 		11CFE3EE2CBDB4D90088B561 /* RestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
 		11D9054C2D63E7580053CDA7 /* DifferentialEquation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifferentialEquation.swift; sourceTree = "<group>"; };
 		11D905552D63ECEF0053CDA7 /* Analysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analysis.swift; sourceTree = "<group>"; };
+		11E03A5A2D64771700108226 /* Stochastic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stochastic.swift; sourceTree = "<group>"; };
 		11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalNeuralNetwork.swift; sourceTree = "<group>"; };
 		11FCF3402CE8F6BB00014C6E /* Chatbot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chatbot.swift; sourceTree = "<group>"; };
 		11FCF3422CE9098B00014C6E /* timecapsule.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = timecapsule.txt; sourceTree = "<group>"; };
@@ -110,7 +112,16 @@
 		1138E16C2C0528260008BE23 /* MachineLearningSwift */ = {
 			isa = PBXGroup;
 			children = (
+				11E03A5D2D647BC600108226 /* Mathematics */,
+				11E03A5C2D647B7B00108226 /* MachineLearning */,
 				1138E16D2C0528260008BE23 /* main.swift */,
+			);
+			path = MachineLearningSwift;
+			sourceTree = "<group>";
+		};
+		11E03A5C2D647B7B00108226 /* MachineLearning */ = {
+			isa = PBXGroup;
+			children = (
 				1122EB4C2C071D180083D697 /* DecisionTree.swift */,
 				1138E1742C0528CD0008BE23 /* LogisticRegression.swift */,
 				1138E1762C0529BF0008BE23 /* NeuralNetwork.swift */,
@@ -131,12 +142,44 @@
 				11AF24132D03879500517E49 /* Tokenizer.swift */,
 				1101C3DE2D10DBD4000645A8 /* Transformer.swift */,
 				11AB83582D3901C0002489B2 /* GPT.swift */,
+			);
+			path = MachineLearning;
+			sourceTree = "<group>";
+		};
+		11E03A5D2D647BC600108226 /* Mathematics */ = {
+			isa = PBXGroup;
+			children = (
+				11E03A602D647C2A00108226 /* LinearAlgebra */,
+				11E03A5F2D647BF500108226 /* Stochastic */,
+				11E03A5E2D647BD600108226 /* Analysis */,
+			);
+			path = Mathematics;
+			sourceTree = "<group>";
+		};
+		11E03A5E2D647BD600108226 /* Analysis */ = {
+			isa = PBXGroup;
+			children = (
+				11D905552D63ECEF0053CDA7 /* Analysis.swift */,
+				11D9054C2D63E7580053CDA7 /* DifferentialEquation.swift */,
+			);
+			path = Analysis;
+			sourceTree = "<group>";
+		};
+		11E03A5F2D647BF500108226 /* Stochastic */ = {
+			isa = PBXGroup;
+			children = (
+				11E03A5A2D64771700108226 /* Stochastic.swift */,
+			);
+			path = Stochastic;
+			sourceTree = "<group>";
+		};
+		11E03A602D647C2A00108226 /* LinearAlgebra */ = {
+			isa = PBXGroup;
+			children = (
 				1133AE852D3E3E0F001FAC0A /* Tensor.swift */,
 				11BD02C62D5F65720008E946 /* DTIProcessor.swift */,
-				11D9054C2D63E7580053CDA7 /* DifferentialEquation.swift */,
-				11D905552D63ECEF0053CDA7 /* Analysis.swift */,
 			);
-			path = MachineLearningSwift;
+			path = LinearAlgebra;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -224,6 +267,7 @@
 				1172EE732CE68BAC0037E71C /* chatbot_model.mlpackage in Sources */,
 				113811BA2D19F74000EA73C4 /* ChatBotLSTMTalking.swift in Sources */,
 				1153C1762CEFE28000E62E55 /* ChatBotLSTM.swift in Sources */,
+				11E03A5B2D64771700108226 /* Stochastic.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

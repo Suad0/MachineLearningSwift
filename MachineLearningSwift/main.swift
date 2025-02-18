@@ -738,8 +738,90 @@ func testAnalysis() {
     print("d/dx \(expr2) = \(derivative2)")  // d/dx sin((x)^2.00) = (cos((x)^2.00) * (2.00 * (x)^1.00 * 1.00))
 }
 
-testAnalysis()
+//testAnalysis()
 
+
+func demonstrateStatisticalCalculator() {
+    // Sample datasets
+    let studentScores: [Double] = [85, 92, 78, 95, 88, 83, 90, 87, 91, 84]
+    let studentWeights: [Double] = [1.2, 1.0, 0.8, 1.1, 1.0, 0.9, 1.0, 1.0, 1.1, 0.9]
+    
+    let examScores1: [Double] = [72, 85, 90, 88, 83, 87, 89, 92]
+    let examScores2: [Double] = [75, 88, 92, 85, 85, 89, 91, 94]
+    
+    print("🔍 Statistical Analysis Demo")
+    print("============================")
+    
+    do {
+        // Basic Statistics
+        print("\n📊 Basic Statistics for Student Scores:")
+        print("---------------------------------------")
+        print("Mean Score: \(try StatisticalCalculator.mean(studentScores))")
+        print("Median Score: \(try StatisticalCalculator.median(studentScores))")
+        print("Standard Deviation: \(try StatisticalCalculator.standardDeviation(studentScores))")
+        
+        // Weighted Statistics
+        print("\n⚖️ Weighted Statistics:")
+        print("----------------------")
+        print("Weighted Mean Score: \(try StatisticalCalculator.weightedMean(studentScores, weights: studentWeights))")
+        
+        // Comprehensive Analysis
+        print("\n📈 Comprehensive Analysis:")
+        print("-------------------------")
+        let stats = try StatisticalCalculator.descriptiveStatistics(studentScores)
+        print("Minimum: \(stats["minimum"] ?? 0)")
+        print("Maximum: \(stats["maximum"] ?? 0)")
+        print("Range: \(stats["range"] ?? 0)")
+        print("Skewness: \(stats["skewness"] ?? 0)")
+        print("Kurtosis: \(stats["kurtosis"] ?? 0)")
+        
+        // Correlation Analysis
+        print("\n🔗 Correlation Analysis between Exam Scores:")
+        print("------------------------------------------")
+        let correlation = try StatisticalCalculator.correlation(examScores1, examScores2)
+        print("Correlation Coefficient: \(correlation)")
+        
+        // Linear Regression
+        print("\n📉 Linear Regression Analysis:")
+        print("-----------------------------")
+        let regression = try StatisticalCalculator.linearRegression(examScores1, examScores2)
+        print("Slope: \(regression.slope)")
+        print("Intercept: \(regression.intercept)")
+        
+        // Probability Distributions
+        print("\n🎲 Probability Distributions:")
+        print("--------------------------")
+        print("Normal PDF at x=85, μ=87, σ=5: \(try StatisticalCalculator.normalPDF(x: 85, mu: 87, sigma: 5))")
+        print("Normal CDF at x=85, μ=87, σ=5: \(StatisticalCalculator.normalCDF(x: 85, mu: 87, sigma: 5))")
+        
+        // Hypothesis Testing
+        print("\n🧪 Hypothesis Testing:")
+        print("--------------------")
+        let zTestResult = try StatisticalCalculator.zTest(
+            sampleMean: try StatisticalCalculator.mean(studentScores),
+            populationMean: 85,
+            sigma: 5,
+            n: studentScores.count
+        )
+        print("Z-Test Score: \(zTestResult.zScore)")
+        print("P-Value: \(zTestResult.pValue)")
+        
+        // Using Array Extensions
+        print("\n🔄 Using Array Extensions:")
+        print("-------------------------")
+        print("Direct Mean Calculation: \(try studentScores.mean())")
+        print("Direct Standard Deviation: \(try studentScores.standardDeviation())")
+        
+    } catch StatisticalCalculator.StatisticalError.insufficientData {
+        print("Error: Insufficient data for calculation")
+    } catch StatisticalCalculator.StatisticalError.invalidParameters {
+        print("Error: Invalid parameters provided")
+    } catch {
+        print("An unexpected error occurred: \(error)")
+    }
+}
+
+demonstrateStatisticalCalculator()
 
 
 
