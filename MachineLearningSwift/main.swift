@@ -821,7 +821,24 @@ func demonstrateStatisticalCalculator() {
     }
 }
 
-demonstrateStatisticalCalculator()
+//demonstrateStatisticalCalculator()
+
+func testMarkovChain() {
+    
+    let markovChain = MarkovChain()
+
+    // Training data
+    let trainingSequence = ["A", "B", "C", "A", "B", "D", "A", "B", "A", "B"]
+
+    // Train the model
+    markovChain.train(on: trainingSequence)
+
+    // Generate a sequence
+    let generatedSequence = markovChain.generateSequence(length: 10)
+    print("Generated sequence: \(generatedSequence)")
+}
+
+testMarkovChain()
 
 
 

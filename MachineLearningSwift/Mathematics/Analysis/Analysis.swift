@@ -41,6 +41,8 @@ indirect enum MathExpression: CustomStringConvertible {
             return "∫\(expr.description)d\(variable)"
         }
     }
+    
+    
 }
 
 // MARK: - Differentiation
@@ -120,6 +122,9 @@ func integral(of expr: MathExpression, withRespectTo variable: String) -> MathEx
     default:
         return .integral(expr, withRespectTo: variable)
     }
+    
+    
+    
 }
 
 // MARK: - Helper Functions

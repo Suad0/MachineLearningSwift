@@ -11,6 +11,7 @@
 		1117C0E82CD583F90036F8F0 /* MetalQLearningAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1117C0E72CD583F90036F8F0 /* MetalQLearningAgent.swift */; };
 		112270D02C77D1F00099B5BF /* VectorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112270CF2C77D1F00099B5BF /* VectorStore.swift */; };
 		1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122EB4C2C071D180083D697 /* DecisionTree.swift */; };
+		1125D52D2D6C80F2006FF30B /* StochasticCalculus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1125D52C2D6C80F2006FF30B /* StochasticCalculus.swift */; };
 		113246B82CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */; };
 		1133AE862D3E3E0F001FAC0A /* Tensor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1133AE852D3E3E0F001FAC0A /* Tensor.swift */; };
 		113811BA2D19F74000EA73C4 /* ChatBotLSTMTalking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113811B92D19F74000EA73C4 /* ChatBotLSTMTalking.swift */; };
@@ -34,6 +35,7 @@
 		11D905562D63ECEF0053CDA7 /* Analysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D905552D63ECEF0053CDA7 /* Analysis.swift */; };
 		11E03A5B2D64771700108226 /* Stochastic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E03A5A2D64771700108226 /* Stochastic.swift */; };
 		11EA585A2C20B56A00768119 /* MetalNeuralNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */; };
+		11F776852D6C63200091D79D /* MarkovChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F776842D6C63200091D79D /* MarkovChain.swift */; };
 		11FCF3412CE8F6BB00014C6E /* Chatbot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FCF3402CE8F6BB00014C6E /* Chatbot.swift */; };
 /* End PBXBuildFile section */
 
@@ -54,6 +56,7 @@
 		1117C0E72CD583F90036F8F0 /* MetalQLearningAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalQLearningAgent.swift; sourceTree = "<group>"; };
 		112270CF2C77D1F00099B5BF /* VectorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorStore.swift; sourceTree = "<group>"; };
 		1122EB4C2C071D180083D697 /* DecisionTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionTree.swift; sourceTree = "<group>"; };
+		1125D52C2D6C80F2006FF30B /* StochasticCalculus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StochasticCalculus.swift; sourceTree = "<group>"; };
 		113246B72CBE896E00C6618A /* MetalRestrictedBoltzmannMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRestrictedBoltzmannMachine.swift; sourceTree = "<group>"; };
 		1133AE852D3E3E0F001FAC0A /* Tensor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tensor.swift; sourceTree = "<group>"; };
 		113811B92D19F74000EA73C4 /* ChatBotLSTMTalking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBotLSTMTalking.swift; sourceTree = "<group>"; };
@@ -75,6 +78,7 @@
 		11D905552D63ECEF0053CDA7 /* Analysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analysis.swift; sourceTree = "<group>"; };
 		11E03A5A2D64771700108226 /* Stochastic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stochastic.swift; sourceTree = "<group>"; };
 		11EA58592C20B56A00768119 /* MetalNeuralNetwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalNeuralNetwork.swift; sourceTree = "<group>"; };
+		11F776842D6C63200091D79D /* MarkovChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkovChain.swift; sourceTree = "<group>"; };
 		11FCF3402CE8F6BB00014C6E /* Chatbot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chatbot.swift; sourceTree = "<group>"; };
 		11FCF3422CE9098B00014C6E /* timecapsule.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = timecapsule.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -169,6 +173,8 @@
 			isa = PBXGroup;
 			children = (
 				11E03A5A2D64771700108226 /* Stochastic.swift */,
+				11F776842D6C63200091D79D /* MarkovChain.swift */,
+				1125D52C2D6C80F2006FF30B /* StochasticCalculus.swift */,
 			);
 			path = Stochastic;
 			sourceTree = "<group>";
@@ -254,6 +260,7 @@
 				1117C0E82CD583F90036F8F0 /* MetalQLearningAgent.swift in Sources */,
 				1122EB4D2C071D180083D697 /* DecisionTree.swift in Sources */,
 				11AB83592D3901C0002489B2 /* GPT.swift in Sources */,
+				1125D52D2D6C80F2006FF30B /* StochasticCalculus.swift in Sources */,
 				11AF24142D03879500517E49 /* Tokenizer.swift in Sources */,
 				1138E1752C0528CD0008BE23 /* LogisticRegression.swift in Sources */,
 				11D905562D63ECEF0053CDA7 /* Analysis.swift in Sources */,
@@ -268,6 +275,7 @@
 				113811BA2D19F74000EA73C4 /* ChatBotLSTMTalking.swift in Sources */,
 				1153C1762CEFE28000E62E55 /* ChatBotLSTM.swift in Sources */,
 				11E03A5B2D64771700108226 /* Stochastic.swift in Sources */,
+				11F776852D6C63200091D79D /* MarkovChain.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
