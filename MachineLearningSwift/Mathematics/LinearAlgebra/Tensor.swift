@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Accelerate
 
 
 enum TensorError: Error {
@@ -389,7 +390,7 @@ extension Tensor {
     func sigmoid() -> Tensor {
         let result = Tensor(
             value.map { row in
-                row.map { 1 / (1 + exp(-$0)) }
+                row.map { 1 / (1 + _math.exp(-$0)) }
             }
         )
         
@@ -511,7 +512,7 @@ extension Tensor {
     
     // L1 Regularization (Lasso)
     func l1Regularization(lambda: Float) -> Float {
-        return lambda * value.flatMap { $0 }.reduce(0) { $0 + abs($1) }
+        return lambda * value.flatMap { $0 }.reduce(0) { $0 + Swift.abs($1) }
     }
     
     // L2 Regularization (Ridge)
@@ -522,5 +523,269 @@ extension Tensor {
     
     
     
+}
+
+
+
+
+extension Tensor {
+    // MARK: - Advanced Numerical Operations
+    
+    /// Element-wise absolute value
+    func abs() -> Tensor {
+        let result = Tensor(
+            value.map { row in
+                row.map { Float(Foundation.abs(Int32($0))) }
+            }
+        )
+        
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        self.grad[i][j] += (self.value[i][j] >= 0 ? 1 : -1) * result.grad[i][j]
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
+    
+    /// Element-wise exponential
+    func exp() -> Tensor {
+        let result = Tensor(
+            value.map { row in
+                row.map { Foundation.exp($0) }
+            }
+        )
+        
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        self.grad[i][j] += result.value[i][j] * result.grad[i][j]
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
+    
+    // MARK: - Performance Optimizations
+    
+    /// Parallel matrix multiplication using Accelerate framework
+    func parallelMatmul(_ other: Tensor) throws -> Tensor {
+        // Validate matrix multiplication dimensions
+        guard value[0].count == other.value.count else {
+            throw TensorError.dimensionMismatch(
+                message: "Matrix multiplication dimensions incompatible"
+            )
+        }
+        
+        let resultRows = value.count
+        let resultCols = other.value[0].count
+        let commonDim = value[0].count
+        
+        var resultValue = Array(
+            repeating: Array(repeating: Float(0), count: resultCols),
+            count: resultRows
+        )
+        
+        // Prepare matrices for BLAS
+        var flatA = value.flatMap { $0 }
+        var flatB = other.value.flatMap { $0 }
+        var flatC = Array(repeating: Float(0), count: resultRows * resultCols)
+        
+        // BLAS parameters
+        let m = Int32(resultRows)     // Number of rows in A
+        let n = Int32(resultCols)     // Number of columns in B
+        let k = Int32(commonDim)      // Number of columns in A / rows in B
+        let alpha: Float = 1.0
+        let beta: Float = 0.0
+        
+        // Use row-major order with correct leading dimensions
+        cblas_sgemm(
+            CblasRowMajor,           // Matrix layout
+            CblasNoTrans,            // TransA
+            CblasNoTrans,            // TransB
+            m,                       // Rows in A
+            n,                       // Columns in B
+            k,                       // Columns in A / Rows in B
+            alpha,                   // Scalar multiplier
+            flatA,                   // Matrix A
+            k,                       // Leading dimension of A (number of columns)
+            flatB,                   // Matrix B
+            n,                       // Leading dimension of B (number of columns)
+            beta,                    // Scalar beta
+            &flatC,                  // Result matrix
+            n                        // Leading dimension of C (number of columns)
+        )
+        
+        // Convert back to 2D array
+        resultValue = stride(from: 0, to: flatC.count, by: resultCols).map {
+            Array(flatC[$0..<min($0 + resultCols, flatC.count)])
+        }
+        
+        let result = Tensor(resultValue)
+        
+        // Gradient computation
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        for k in 0..<result.value[0].count {
+                            self.grad[i][j] += result.grad[i][k] * other.value[j][k]
+                        }
+                    }
+                }
+            }
+            
+            if other.requires_grad {
+                for i in 0..<other.value.count {
+                    for j in 0..<other.value[0].count {
+                        for k in 0..<result.value.count {
+                            other.grad[i][j] += result.grad[k][j] * self.value[k][i]
+                        }
+                    }
+                }
+            }
+        }
+        
+        result.children = [self, other]
+        return result
+    }
+    
+    // MARK: - Advanced Statistical Methods
+    
+    /// Compute variance
+    func variance() -> Tensor {
+        let mean = self.mean().value[0][0]
+        
+        let varianceValue = value.flatMap { row in
+            row.map { pow($0 - mean, 2) }
+        }.reduce(0, +) / Float(value.count * value[0].count)
+        
+        let result = Tensor(varianceValue)
+        
+        result.gradFn = {
+            if self.requires_grad {
+                let gradientValue = result.grad[0][0]
+                
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        self.grad[i][j] += gradientValue * 2 * (self.value[i][j] - mean) / Float(self.value.count * self.value[0].count)
+                    }
+                }
+            }
+        }
+        
+        result.children = [self]
+        return result
+    }
+    
+    // MARK: - Numerical Stability Improvements
+    
+    /// Safe division to prevent divide-by-zero errors
+    func divide(by other: Tensor, epsilon: Float = 1e-7) throws -> Tensor {
+        // Check if tensors have compatible dimensions
+        guard value.count == other.value.count &&
+                value[0].count == other.value[0].count else {
+            throw TensorError.dimensionMismatch(
+                message: "Tensor dimensions must match for element-wise division. " +
+                "First tensor: \(value.count)x\(value[0].count), " +
+                "Second tensor: \(other.value.count)x\(other.value[0].count)"
+            )
+        }
+        
+        let result = Tensor(
+            value.enumerated().map { i, row in
+                row.enumerated().map { j, val in
+                    let denominator = other.value[i][j]
+                    return val / (Swift.abs(denominator) > epsilon ? denominator : (denominator >= 0 ? epsilon : -epsilon))
+                }
+            }
+        )
+        
+        result.gradFn = {
+            if self.requires_grad {
+                for i in 0..<self.value.count {
+                    for j in 0..<self.value[0].count {
+                        let denominator = other.value[i][j]
+                        let safeDerivative = 1 / (Swift.abs(denominator) > epsilon ? denominator : (denominator >= 0 ? epsilon : -epsilon))
+                        self.grad[i][j] += safeDerivative * result.grad[i][j]
+                    }
+                }
+            }
+            
+            if other.requires_grad {
+                for i in 0..<other.value.count {
+                    for j in 0..<other.value[0].count {
+                        let denominator = other.value[i][j]
+                        let safeDerivative = -self.value[i][j] / pow(Swift.abs(denominator) > epsilon ? denominator : (denominator >= 0 ? epsilon : -epsilon), 2)
+                        other.grad[i][j] += safeDerivative * result.grad[i][j]
+                    }
+                }
+            }
+        }
+        
+        result.children = [self, other]
+        return result
+    }
+    
+    // MARK: - Debugging and Introspection
+    
+    /// Detailed tensor description
+    func tensorDescription() -> String {
+        let shapeDescription = "Shape: \(value.count)x\(value[0].count)"
+        let dataTypeDescription = "Type: Float"
+        let gradDescription = requires_grad ? "Gradient tracking: Enabled" : "Gradient tracking: Disabled"
+        
+        let valuePreview = value.prefix(3).map { row in
+            row.prefix(3).map { String(format: "%.4f", $0) }.joined(separator: ", ")
+        }.joined(separator: "; ")
+        
+        return """
+        Tensor Description:
+        \(shapeDescription)
+        \(dataTypeDescription)
+        \(gradDescription)
+        First values: [\(valuePreview)]
+        Memory footprint: \(memoryFootprint()) bytes
+        """
+    }
+    
+    /// Calculate memory footprint
+    func memoryFootprint() -> Int {
+        let valueMemory = value.count * value[0].count * MemoryLayout<Float>.stride
+        let gradMemory = grad.count * grad[0].count * MemoryLayout<Float>.stride
+        return valueMemory + gradMemory
+    }
+}
+
+// MARK: - Serialization Extension
+extension Tensor {
+    /// Convert tensor to JSON
+    func toJSON() -> [String: Any] {
+        return [
+            "shape": [value.count, value[0].count],
+            "values": value,
+            "requires_grad": requires_grad
+        ]
+    }
+    
+    /// JSON deserialization with more robust error handling
+    static func fromJSON(_ json: [String: Any]) -> Tensor? {
+        guard let values = json["values"] as? [[Float]],
+              let requiresGrad = json["requires_grad"] as? Bool else {
+            print("Invalid JSON format for Tensor reconstruction")
+            return nil
+        }
+        
+        return Tensor(values, requires_grad: requiresGrad)
+    }
 }
 

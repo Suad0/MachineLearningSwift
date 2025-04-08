@@ -826,19 +826,109 @@ func demonstrateStatisticalCalculator() {
 func testMarkovChain() {
     
     let markovChain = MarkovChain()
-
+    
     // Training data
     let trainingSequence = ["A", "B", "C", "A", "B", "D", "A", "B", "A", "B"]
-
+    
     // Train the model
     markovChain.train(on: trainingSequence)
-
+    
     // Generate a sequence
     let generatedSequence = markovChain.generateSequence(length: 10)
     print("Generated sequence: \(generatedSequence)")
 }
 
-testMarkovChain()
+//testMarkovChain()
+
+func testTensorExtension() {
+    // Tensor Description Test
+    let tensor = Tensor([[1.0, 2.0], [3.0, 4.0]])
+    print("Tensor Description Test:")
+    print(tensor.tensorDescription())
+    print("\n")
+    
+    // Parallel Matrix Multiplication Tests
+    print("Parallel Matrix Multiplication Tests:")
+    let tensor1 = Tensor([[1.0, 2.0], [3.0, 4.0]])
+    let tensor2 = Tensor([[5.0, 6.0], [7.0, 8.0]])
+    
+    do {
+        let result = try tensor1.parallelMatmul(tensor2)
+        print("Matrix Multiplication Result:")
+        print(result.value)
+    } catch {
+        print("Matrix multiplication failed: \(error)")
+    }
+    print("\n")
+    
+    // Safe Division Test
+    print("Safe Division Test:")
+    let dividendTensor = Tensor([[10.0, 20.0], [30.0, 40.0]])
+    let divisorTensor = Tensor([[2.0, 4.0], [5.0, 8.0]])
+    
+    do {
+        let dividedTensor = try dividendTensor.divide(by: divisorTensor)
+        print("Division Result:")
+        print(dividedTensor.value)
+    } catch {
+        print("Division failed: \(error)")
+    }
+    print("\n")
+    
+    // JSON Serialization and Reconstruction Test
+    print("JSON Serialization Test:")
+    let jsonRepresentation = tensor.toJSON()
+    print("JSON Representation:")
+    print(jsonRepresentation)
+    
+    if let reconstructedTensor = Tensor.fromJSON(jsonRepresentation) {
+        print("\nReconstructed Tensor:")
+        print(reconstructedTensor.tensorDescription())
+    }
+}
+
+//testTensorExtension()
+
+
+func xLSTMModel_test(){
+    
+    // Initialize the model
+    let model = xLSTMModel(
+        inputSize: 5,      // Size of input features
+        hiddenSize: 10,    // Size of hidden state
+        memorySize: 10,    // Size of memory state
+        outputSize: 1      // Size of output (e.g., regression task)
+    )
+
+    // Sample sequence data (e.g., 3 timesteps, 5 features each)
+    let sequence: [[Float]] = [
+        [0.1, 0.2, 0.3, 0.4, 0.5],
+        [0.2, 0.3, 0.4, 0.5, 0.6],
+        [0.3, 0.4, 0.5, 0.6, 0.7]
+    ]
+    let target: [Float] = [0.8] // Target output
+
+    // Train the model
+    model.train(sequence: sequence, target: target)
+
+    // Make a prediction
+    let prediction = model.predict(sequence: sequence)
+    print("Prediction: \(prediction)")
+
+    // Save the model
+    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("model.json")
+    try? model.save(to: url)
+
+    // Load the model later
+    if let loadedModel = try? xLSTMModel.load(from: url) {
+        let newPrediction = loadedModel.predict(sequence: sequence)
+        print("Loaded model prediction: \(newPrediction)")
+    }
+    
+    
+}
+
+xLSTMModel_test()
 
 
 

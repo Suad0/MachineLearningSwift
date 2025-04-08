@@ -13,13 +13,17 @@ import Accelerate
 
 class xLSTMCell {
     
-    private let inputSize: Int
-    private let hiddenSize: Int
-    private let memorySize: Int
+    public let inputSize: Int
+    public let hiddenSize: Int
+    public let memorySize: Int
     
     // Weights and biases
     private var Wf, Wi, Wo, Wv, Wk, Wq: [Float]
     private var bf, bi, bo: [Float]
+    
+    
+    private var mWf, vWf, mWi, vWi, mWo, vWo, mWv, vWv, mWk, vWk, mWq, vWq: [Float]
+    private var t: Int = 1
     
     // Gradient storage
     private var gradWf, gradWi, gradWo, gradWv, gradWk, gradWq: [Float]
@@ -34,7 +38,9 @@ class xLSTMCell {
     private var h: [Float]
     private var C: [Float]
     private var lastInput: [Float] = []
-    private var lastOutputs: [[Float]] = []
+    public var lastOutputs: [[Float]] = []
+    
+    private var states: [(input: [Float], concat: [Float], ft: [Float], it: [Float], ot: [Float], vt: [Float], kt: [Float], qt: [Float], C: [Float])] = []
     
     required init(
         inputSize: Int,
@@ -69,6 +75,8 @@ class xLSTMCell {
         bi = [Float](repeating: 0, count: memorySize)
         bo = [Float](repeating: 0, count: hiddenSize) // Now hiddenSize
         
+        
+        
         // Initialize gradient storage (unchanged)
         gradWf = [Float](repeating: 0, count: Wf.count)
         gradWi = [Float](repeating: 0, count: Wi.count)
@@ -83,51 +91,64 @@ class xLSTMCell {
         // Initialize hidden state and memory cell
         h = [Float](repeating: 0, count: hiddenSize)
         C = [Float](repeating: 0, count: memorySize * memorySize)
+        
+        mWf = [Float](repeating: 0, count: Wf.count)
+        vWf = [Float](repeating: 0, count: Wf.count)
+        mWi = [Float](repeating: 0, count: Wi.count)
+        vWi = [Float](repeating: 0, count: Wi.count)
+        mWo = [Float](repeating: 0, count: Wo.count)
+        vWo = [Float](repeating: 0, count: Wo.count)
+        mWv = [Float](repeating: 0, count: Wv.count)
+        vWv = [Float](repeating: 0, count: Wv.count)
+        mWk = [Float](repeating: 0, count: Wk.count)
+        vWk = [Float](repeating: 0, count: Wk.count)
+        mWq = [Float](repeating: 0, count: Wq.count)
+        vWq = [Float](repeating: 0, count: Wq.count)
+        
+        
+        
     }
     
     // Sequence processing forward pass
     func processSequence(inputs: [[Float]]) -> [[Float]] {
-        lastOutputs = []
-        lastInput = []
-        
-        return inputs.map { input in
-            lastInput = input
+        states = []  // Reset states for each sequence
+        var outputs: [[Float]] = []
+        for input in inputs {
             let output = forward(input: input)
-            lastOutputs.append(output)
-            return output
+            outputs.append(output)
         }
+        lastOutputs = outputs
+        return outputs
     }
     
     // Forward pass with detailed state tracking
+    
     private func forward(input: [Float]) -> [Float] {
-        guard input.count == inputSize else {
-            fatalError("Input size mismatch")
-        }
+        precondition(input.count == inputSize, "Input size must be \(inputSize), got \(input.count)")
+        precondition(h.count == hiddenSize, "Hidden state size corrupted")
         
         let concat = h + input
-        
-        // Corrected gate activations (sigmoid)
         let ft = computeGate(Wf, concat, bf, rowsA: memorySize, activation: { 1.0 / (1.0 + exp(-$0)) })
         let it = computeGate(Wi, concat, bi, rowsA: memorySize, activation: { 1.0 / (1.0 + exp(-$0)) })
         let ot = computeGate(Wo, concat, bo, rowsA: hiddenSize, activation: { 1.0 / (1.0 + exp(-$0)) })
-        
-        // Bounded value/key/query with tanh
         let vt = tanh(matrixMultiply(Wv, input, rowsA: memorySize, colsA: inputSize, colsB: 1))
         let kt = tanh(matrixMultiply(Wk, input, rowsA: memorySize, colsA: inputSize, colsB: 1))
         let qt = tanh(matrixMultiply(Wq, input, rowsA: memorySize, colsA: inputSize, colsB: 1))
         
+        // Store C before update as C_prev would be the previous C, but we’ll use states[t-1].C later
         updateMemoryCell(ft: ft, it: it, vt: vt, kt: kt)
-        
-        // Improved normalization with L2 norm
         h = computeHiddenState(ot: ot, qt: qt)
+        
+        // Store all necessary states
+        states.append((input: input, concat: concat, ft: ft, it: it, ot: ot, vt: vt, kt: kt, qt: qt, C: C))
         return h
     }
     
     private func computeHiddenState(ot: [Float], qt: [Float]) -> [Float] {
         
         guard ot.count == hiddenSize, qt.count == memorySize else {
-                fatalError("Dimension mismatch in computeHiddenState")
-            }
+            fatalError("Dimension mismatch in computeHiddenState")
+        }
         
         let Ctq = (0..<memorySize).map { i in
             (0..<memorySize).reduce(0) { result, j in
@@ -141,29 +162,31 @@ class xLSTMCell {
     }
     
     // Backpropagation through time (BPTT)
-    func backpropagate(targetSequence: [[Float]]) {
-        var dhnext = [Float](repeating: 0, count: hiddenSize)
-        
-        // Reverse iteration through sequence
-        for (index, targetOutput) in targetSequence.reversed().enumerated() {
-            let currentOutput = lastOutputs[lastOutputs.count - 1 - index]
-            let currentInput = lastInput
-            
-            // Compute output error
-            let dh = computeOutputGradient(currentOutput, targetOutput, dhnext)
-            
-            // Gradient computation for gates and weights
-            accumulateGradients(dh: dh, input: currentInput)
-            
-            dhnext = dh // For next iteration
-        }
-        
-        // Gradient clipping
-        applyGradientClipping()
-        
-        // Update weights with L2 regularization
-        updateWeightsWithRegularization()
-    }
+    /*
+     func backpropagate(targetSequence: [[Float]]) {
+     var dhnext = [Float](repeating: 0, count: hiddenSize)
+     
+     // Reverse iteration through sequence
+     for (index, targetOutput) in targetSequence.reversed().enumerated() {
+     let currentOutput = lastOutputs[lastOutputs.count - 1 - index]
+     let currentInput = lastInput
+     
+     // Compute output error
+     let dh = computeOutputGradient(currentOutput, targetOutput, dhnext)
+     
+     // Gradient computation for gates and weights
+     accumulateGradients(dh: dh, input: currentInput)
+     
+     dhnext = dh // For next iteration
+     }
+     
+     // Gradient clipping
+     applyGradientClipping()
+     
+     // Update weights with L2 regularization
+     updateWeightsWithRegularization()
+     }
+     */
     
     // Helper methods for backpropagation
     private func computeOutputGradient(_ output: [Float], _ target: [Float], _ dhnext: [Float]) -> [Float] {
@@ -301,40 +324,102 @@ class xLSTMCell {
     }
     
     // Comprehensive gradient accumulation
-    private func accumulateGradients(dh: [Float], input: [Float]) {
-        let concat = h + input
+    private func accumulateGradients(
+        dh: [Float],
+        state: (input: [Float], concat: [Float], ft: [Float], it: [Float], ot: [Float], vt: [Float], kt: [Float], qt: [Float], C: [Float]),
+        dCnext: [Float],
+        C_prev: [Float]
+    ) -> [Float] {
+        let input = state.input
+        let concat = state.concat
+        let ft = state.ft
+        let it = state.it
+        let ot = state.ot
+        let vt = state.vt
+        let kt = state.kt
+        let qt = state.qt
+        let C = state.C  // C_t after update
         
-        // Gradient for forget gate weights
-        gradWf = computeGateGradient(dh, Wf, concat, bf)
+        // Step 1: Compute Ctq and norm (recompute from forward pass)
+        let Ctq = (0..<memorySize).map { i in
+            (0..<memorySize).reduce(0) { result, j in
+                result + C[i * memorySize + j] * qt[j]
+            }
+        }
+        let norm = sqrt(Ctq.reduce(0) { $0 + $1 * $1 }) + 1e-7
+        let s = Ctq.map { $0 / norm }  // s = Ctq / norm
         
-        // Gradient for input gate weights
-        gradWi = computeGateGradient(dh, Wi, concat, bi)
+        // Step 2: Compute ds (gradient w.r.t. s), since h = ot .* s
+        let ds = zip(ot, dh).map { $0 * $1 }  // ∂L/∂s = ot .* dh
         
-        // Gradient for output gate weights
-        gradWo = computeGateGradient(dh, Wo, concat, bo)
-        
-        // Gradient for value, key, query weights
-        gradWv = computeValueGradient(dh, input)
-        gradWk = computeKeyGradient(dh, input)
-        gradWq = computeQueryGradient(dh, input)
-        
-        // Bias gradients
-        gradbf = dh
-        gradbi = dh
-        gradbo = dh
-        
-        // Gradient for memory matrix C
-        var dC = [Float](repeating: 0, count: memorySize * memorySize)
-        for (i, cVal) in C.enumerated() {
-            let row = i / memorySize
-            let dhVal = (row < hiddenSize) ? dh[row] : 0
-            dC[i] = dhVal * cVal
+        // Step 3: Compute dCtq (gradient w.r.t. Ctq)
+        let Ctq_dot_ds = zip(Ctq, ds).reduce(0) { $0 + $1.0 * $1.1 }
+        let dCtq = (0..<memorySize).map { k in
+            ds[k] / norm - (Ctq_dot_ds * Ctq[k]) / (norm * norm * norm)
         }
         
-        // Compute gradients using outer product
-        gradWv = outerProduct(dC, input)
-        gradWk = outerProduct(dC, input)
-        gradWq = outerProduct(dC, input)
+        // Step 4: Compute dC (gradient w.r.t. C_t) from Ctq = C @ qt
+        var dC = (0..<memorySize).flatMap { i in
+            (0..<memorySize).map { j in
+                dCtq[i] * qt[j]  // dC[i,j] = dCtq[i] * qt[j]
+            }
+        }
+        
+        // Add contribution from dCnext (from the next time step)
+        dC = zip(dC, dCnext).map { $0 + $1 }
+        
+        // Step 5: Compute dot (gradient w.r.t. ot), since h = ot .* s
+        let dot = zip(s, dh).map { $0 * $1 }
+        let dz_o = zip(dot, ot).map { $0 * $1 * (1 - $1) }  // Sigmoid derivative: ot * (1 - ot)
+        let gradWo_update = outerProduct(dz_o, concat)
+        gradWo = zip(gradWo, gradWo_update).map { $0 + $1 }
+        gradbo = zip(gradbo, dz_o).map { $0 + $1 }
+        
+        // Step 6: Compute gradients for ft, it, vt, kt from C_t = ft .* C_{t-1} + it .* (vt @ kt.T)
+        var dft = [Float](repeating: 0, count: memorySize)
+        for i in 0..<memorySize {
+            var sum = Float(0)
+            for j in 0..<memorySize {
+                sum += dC[i * memorySize + j] * C_prev[i * memorySize + j]
+            }
+            dft[i] = sum
+        }
+        
+        let dz_f = zip(dft, ft).map { $0 * $1 * (1 - $1) }
+        gradWf = zip(gradWf, outerProduct(dz_f, concat)).map { $0 + $1 }
+        gradbf = zip(gradbf, dz_f).map { $0 + $1 }
+        
+        let dit = (0..<memorySize).map { i in
+            vt[i] * (0..<memorySize).reduce(0) { $0 + dC[i * memorySize + $1] * kt[$1] }
+        }
+        let dz_i = zip(dit, it).map { $0 * $1 * (1 - $1) }
+        gradWi = zip(gradWi, outerProduct(dz_i, concat)).map { $0 + $1 }
+        gradbi = zip(gradbi, dz_i).map { $0 + $1 }
+        
+        let dvt = (0..<memorySize).map { i in
+            it[i] * (0..<memorySize).reduce(0) { $0 + dC[i * memorySize + $1] * kt[$1] }
+        }
+        let dz_v = zip(dvt, vt).map { $0 * (1 - $1 * $1) }  // Tanh derivative: 1 - vt^2
+        gradWv = zip(gradWv, outerProduct(dz_v, input)).map { $0 + $1 }
+        // Add if gradbv exists: gradbv = zip(gradbv, dz_v).map { $0 + $1 }
+        
+        let dkt = (0..<memorySize).map { j in
+            (0..<memorySize).reduce(0) { $0 + dC[$1 * memorySize + j] * it[$1] * vt[$1] }
+        }
+        let dz_k = zip(dkt, kt).map { $0 * (1 - $1 * $1) }
+        gradWk = zip(gradWk, outerProduct(dz_k, input)).map { $0 + $1 }
+        // Add if gradbk exists: gradbk = zip(gradbk, dz_k).map { $0 + $1 }
+        
+        // Step 7: Compute dqt and update Wq
+        let dqt = (0..<memorySize).map { j in
+            (0..<memorySize).reduce(0) { $0 + C[$1 * memorySize + j] * dCtq[$1] }
+        }
+        let dz_q = zip(dqt, qt).map { $0 * (1 - $1 * $1) }
+        gradWq = zip(gradWq, outerProduct(dz_q, input)).map { $0 + $1 }
+        
+        return dC
+        
+        
     }
     
     private func outerProduct(_ a: [Float], _ b: [Float]) -> [Float] {
@@ -349,20 +434,20 @@ class xLSTMCell {
     
     // Advanced Adam optimization method
     private func optimizeWithAdam(hyperparameters: OptimizerType.Hyperparameters = .init(learningRate: 0.001)) {
-        var mWf = [Float](repeating: 0, count: Wf.count)
-        var vWf = [Float](repeating: 0, count: Wf.count)
-        var mWi = [Float](repeating: 0, count: Wi.count)
-        var vWi = [Float](repeating: 0, count: Wi.count)
-        var mWo = [Float](repeating: 0, count: Wo.count)
-        var vWo = [Float](repeating: 0, count: Wo.count)
-        var mWv = [Float](repeating: 0, count: Wv.count)
-        var vWv = [Float](repeating: 0, count: Wv.count)
-        var mWk = [Float](repeating: 0, count: Wk.count)
-        var vWk = [Float](repeating: 0, count: Wk.count)
-        var mWq = [Float](repeating: 0, count: Wq.count)
-        var vWq = [Float](repeating: 0, count: Wq.count)
+        //var mWf = [Float](repeating: 0, count: Wf.count)
+        //var vWf = [Float](repeating: 0, count: Wf.count)
+        //var mWi = [Float](repeating: 0, count: Wi.count)
+        //var vWi = [Float](repeating: 0, count: Wi.count)
+        //var mWo = [Float](repeating: 0, count: Wo.count)
+        //var vWo = [Float](repeating: 0, count: Wo.count)
+        //var mWv = [Float](repeating: 0, count: Wv.count)
+        //var vWv = [Float](repeating: 0, count: Wv.count)
+        //var mWk = [Float](repeating: 0, count: Wk.count)
+        //var vWk = [Float](repeating: 0, count: Wk.count)
+        //var mWq = [Float](repeating: 0, count: Wq.count)
+        //var vWq = [Float](repeating: 0, count: Wq.count)
         
-        var t = 1
+        //var t = 1
         
         func adamUpdate(_ weights: inout [Float], _ gradients: [Float], _ m: inout [Float], _ v: inout [Float]) {
             for i in 0..<weights.count {
@@ -421,25 +506,39 @@ class xLSTMCell {
     
     // Updated backpropagation method
     func backpropagate(targetSequence: [[Float]], lossType: LossFunction = .meanSquaredError) {
+        precondition(targetSequence.count == states.count, "Target sequence length must match input sequence length")
+        
         var dhnext = [Float](repeating: 0, count: hiddenSize)
+        var dCnext = [Float](repeating: 0, count: memorySize * memorySize)  // Gradient for C from future steps
         
         for (index, targetOutput) in targetSequence.reversed().enumerated() {
-            let currentOutput = lastOutputs[lastOutputs.count - 1 - index]
-            let currentInput = lastInput
+            let t = states.count - 1 - index
+            let state = states[t]
+            let currentOutput = lastOutputs[t]
             
-            // Compute output error using selected loss function
-            let dh = lossType.computeGradient(predicted: currentOutput, target: targetOutput)
+            // Compute output gradient
+            let dh = lossType.computeGradient(predicted: currentOutput, target: targetOutput).enumerated().map { $1 + dhnext[$0] }
             
-            // Gradient computation for gates and weights
-            accumulateGradients(dh: dh, input: currentInput)
+            // Get the previous memory cell state (C_prev)
+            let C_prev = t > 0 ? states[t - 1].C : [Float](repeating: 0, count: memorySize * memorySize)
             
-            dhnext = dh
+            // Accumulate gradients and get the memory cell gradient (dC)
+            let dC = accumulateGradients(dh: dh, state: state, dCnext: dCnext, C_prev: C_prev)
+            
+            // Update dhnext (using approximation for simplicity)
+            dhnext = dh  // Note: This is approximate; full BPTT would compute gate dependencies
+            
+            // Update dCnext for the previous time step
+            if t > 0 {
+                // Propagate dC backward: dC_{t-1} = dC_t * ft_t (based on C_t = ft_t * C_{t-1} + ...)
+                dCnext = zip(dC, state.ft).map { $0 * $1 }
+            } else {
+                // No previous time step at t = 0
+                dCnext = [Float](repeating: 0, count: memorySize * memorySize)
+            }
         }
         
-        // Gradient clipping
         applyGradientClipping()
-        
-        // Optimize weights using Adam
         optimizeWithAdam()
     }
     
@@ -457,12 +556,20 @@ class xLSTMCell {
             fatalError("Array size mismatch in updateMemoryCell")
         }
         
-        // Update memory cell using forget and input gates
-        for i in 0..<memorySize {
-            for j in 0..<memorySize {
-                C[i * memorySize + j] = ft[i] * C[i * memorySize + j] + it[i] * vt[i] * kt[j]
-            }
-        }
+        /*
+         
+         // Update memory cell using forget and input gates
+         for i in 0..<memorySize {
+         for j in 0..<memorySize {
+         C[i * memorySize + j] = ft[i] * C[i * memorySize + j] + it[i] * vt[i] * kt[j]
+         }
+         }
+         */
+        
+        var temp = [Float](repeating: 0, count: memorySize * memorySize)
+        vDSP_mmul(vt, 1, kt, 1, &temp, 1, vDSP_Length(memorySize), vDSP_Length(1), vDSP_Length(memorySize)) // Outer product
+        vDSP_vmul(ft, 1, C, 1, &C, 1, vDSP_Length(C.count)) // Element-wise multiply
+        vDSP_vadd(C, 1, temp, 1, &C, 1, vDSP_Length(C.count)) // Add contribution
     }
     
     
@@ -484,6 +591,36 @@ class xLSTMCell {
     }
     
     
+}
+
+
+// TODO ONLY FOR TESTING 
+extension xLSTMCell {
+    func save() -> [String: Any] {
+        return [
+            "Wf": Wf,
+            "Wi": Wi,
+            "Wo": Wo,
+            "Wv": Wv,
+            "Wk": Wk,
+            "Wq": Wq,
+            "bf": bf,
+            "bi": bi,
+            "bo": bo
+        ]
+    }
+    
+    func load(from data: [String: Any]) {
+        Wf = data["Wf"] as! [Float]
+        Wi = data["Wi"] as! [Float]
+        Wo = data["Wo"] as! [Float]
+        Wv = data["Wv"] as! [Float]
+        Wk = data["Wk"] as! [Float]
+        Wq = data["Wq"] as! [Float]
+        bf = data["bf"] as! [Float]
+        bi = data["bi"] as! [Float]
+        bo = data["bo"] as! [Float]
+    }
 }
 
 
