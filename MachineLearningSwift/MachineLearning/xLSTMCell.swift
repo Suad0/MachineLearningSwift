@@ -505,35 +505,24 @@ class xLSTMCell {
     }
     
     // Updated backpropagation method
-    func backpropagate(targetSequence: [[Float]], lossType: LossFunction = .meanSquaredError) {
-        precondition(targetSequence.count == states.count, "Target sequence length must match input sequence length")
-        
+    func backpropagate(dhSequence: [[Float]]) {
+        precondition(dhSequence.count == states.count, "Gradient sequence length must match input sequence length")
         var dhnext = [Float](repeating: 0, count: hiddenSize)
-        var dCnext = [Float](repeating: 0, count: memorySize * memorySize)  // Gradient for C from future steps
+        var dCnext = [Float](repeating: 0, count: memorySize * memorySize)
         
-        for (index, targetOutput) in targetSequence.reversed().enumerated() {
-            let t = states.count - 1 - index
-            let state = states[t]
-            let currentOutput = lastOutputs[t]
-            
-            // Compute output gradient
-            let dh = lossType.computeGradient(predicted: currentOutput, target: targetOutput).enumerated().map { $1 + dhnext[$0] }
-            
-            // Get the previous memory cell state (C_prev)
-            let C_prev = t > 0 ? states[t - 1].C : [Float](repeating: 0, count: memorySize * memorySize)
-            
-            // Accumulate gradients and get the memory cell gradient (dC)
+        for (t, externalDh) in dhSequence.reversed().enumerated() {
+            let state = states[states.count - 1 - t]
+            let dh = zip(externalDh, dhnext).map { $0 + $1 }
+            let C_prev = (states.count - 1 - t) > 0 ? states[states.count - 2 - t].C : [Float](repeating: 0, count: memorySize * memorySize)
             let dC = accumulateGradients(dh: dh, state: state, dCnext: dCnext, C_prev: C_prev)
-            
-            // Update dhnext (using approximation for simplicity)
-            dhnext = dh  // Note: This is approximate; full BPTT would compute gate dependencies
-            
-            // Update dCnext for the previous time step
-            if t > 0 {
-                // Propagate dC backward: dC_{t-1} = dC_t * ft_t (based on C_t = ft_t * C_{t-1} + ...)
-                dCnext = zip(dC, state.ft).map { $0 * $1 }
+            dhnext = dh
+            if (states.count - 1 - t) > 0 {
+                dCnext = (0..<memorySize).flatMap { i in
+                    (0..<memorySize).map { j in
+                        dC[i * memorySize + j] * state.ft[i]
+                    }
+                }
             } else {
-                // No previous time step at t = 0
                 dCnext = [Float](repeating: 0, count: memorySize * memorySize)
             }
         }
@@ -543,11 +532,6 @@ class xLSTMCell {
     }
     
     private func updateMemoryCell(ft: [Float], it: [Float], vt: [Float], kt: [Float]) {
-        // Debug: Print sizes of input arrays
-        print("ft size: \(ft.count), it size: \(it.count), vt size: \(vt.count), kt size: \(kt.count)")
-        print("C size: \(C.count), memorySize: \(memorySize)")
-        
-        // Ensure all arrays have the correct size
         guard ft.count == memorySize,
               it.count == memorySize,
               vt.count == memorySize,
@@ -556,21 +540,55 @@ class xLSTMCell {
             fatalError("Array size mismatch in updateMemoryCell")
         }
         
-        /*
-         
-         // Update memory cell using forget and input gates
-         for i in 0..<memorySize {
-         for j in 0..<memorySize {
-         C[i * memorySize + j] = ft[i] * C[i * memorySize + j] + it[i] * vt[i] * kt[j]
-         }
-         }
-         */
+        // Create a local mutable copy of C so that we can modify it without conflicting with self.C.
+        var newC = C
         
+        // Compute vt @ kt.T into temp matrix.
         var temp = [Float](repeating: 0, count: memorySize * memorySize)
-        vDSP_mmul(vt, 1, kt, 1, &temp, 1, vDSP_Length(memorySize), vDSP_Length(1), vDSP_Length(memorySize)) // Outer product
-        vDSP_vmul(ft, 1, C, 1, &C, 1, vDSP_Length(C.count)) // Element-wise multiply
-        vDSP_vadd(C, 1, temp, 1, &C, 1, vDSP_Length(C.count)) // Add contribution
+        vDSP_mmul(vt, 1, kt, 1, &temp, 1, vDSP_Length(memorySize), 1, vDSP_Length(memorySize))
+        
+        // Update newC = ft .* newC (row-wise)
+        newC.withUnsafeMutableBufferPointer { cBuffer in
+            for i in 0..<memorySize {
+                let rowStart = i * memorySize
+                let rowPtr = cBuffer.baseAddress! + rowStart
+                var scalar_ft = ft[i]
+                withUnsafePointer(to: &scalar_ft) { scalePtr in
+                    vDSP_vsmul(rowPtr, 1, scalePtr, rowPtr, 1, vDSP_Length(memorySize))
+                }
+            }
+        }
+        
+        // Update temp = it .* (vt @ kt.T) (row-wise)
+        temp.withUnsafeMutableBufferPointer { tempBuffer in
+            for i in 0..<memorySize {
+                let rowStart = i * memorySize
+                let rowPtr = tempBuffer.baseAddress! + rowStart
+                var scalar_it = it[i]
+                withUnsafePointer(to: &scalar_it) { scalePtr in
+                    vDSP_vsmul(rowPtr, 1, scalePtr, rowPtr, 1, vDSP_Length(memorySize))
+                }
+            }
+        }
+        
+        // Create a temporary array to hold the result
+        var result = [Float](repeating: 0, count: newC.count)
+
+        newC.withUnsafeBufferPointer { cBuffer in
+            temp.withUnsafeBufferPointer { tempBuffer in
+                result.withUnsafeMutableBufferPointer { resBuffer in
+                    vDSP_vadd(cBuffer.baseAddress!, 1,
+                              tempBuffer.baseAddress!, 1,
+                              resBuffer.baseAddress!, 1,
+                              vDSP_Length(newC.count))
+                }
+            }
+        }
+
+        // Now assign the computed result back to newC.
+        newC = result
     }
+
     
     
     private func matrixMultiply(_ A: [Float], _ B: [Float], rowsA: Int, colsA: Int, colsB: Int) -> [Float] {

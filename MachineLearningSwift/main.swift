@@ -614,7 +614,7 @@ public func usageXLSTM() {
         [Float](repeating: 0.0, count: 20)
     ]
     
-    lstmCell.backpropagate(targetSequence: targetSequence)
+    lstmCell.backpropagate(dhSequence: targetSequence)
     
     let updatedOutputs = lstmCell.processSequence(inputs: inputs)
     print("\nOutputs after backpropagation and weight updates:")
@@ -890,45 +890,43 @@ func testTensorExtension() {
 //testTensorExtension()
 
 
-func xLSTMModel_test(){
-    
-    // Initialize the model
+func xLSTMModel_test() {
     let model = xLSTMModel(
-        inputSize: 5,      // Size of input features
-        hiddenSize: 10,    // Size of hidden state
-        memorySize: 10,    // Size of memory state
-        outputSize: 1      // Size of output (e.g., regression task)
+        inputSize: 5,
+        hiddenSize: 10,
+        memorySize: 10,
+        outputSize: 1
     )
 
-    // Sample sequence data (e.g., 3 timesteps, 5 features each)
     let sequence: [[Float]] = [
         [0.1, 0.2, 0.3, 0.4, 0.5],
         [0.2, 0.3, 0.4, 0.5, 0.6],
         [0.3, 0.4, 0.5, 0.6, 0.7]
     ]
-    let target: [Float] = [0.8] // Target output
+    let target: [Float] = [0.8]
 
-    // Train the model
     model.train(sequence: sequence, target: target)
 
-    // Make a prediction
     let prediction = model.predict(sequence: sequence)
     print("Prediction: \(prediction)")
 
-    // Save the model
     let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("model.json")
     try? model.save(to: url)
+    
+    
+    
+    
+    
+    /*
 
-    // Load the model later
     if let loadedModel = try? xLSTMModel.load(from: url) {
         let newPrediction = loadedModel.predict(sequence: sequence)
         print("Loaded model prediction: \(newPrediction)")
     }
+     
+     */
     
     
 }
 
 xLSTMModel_test()
-
-
-

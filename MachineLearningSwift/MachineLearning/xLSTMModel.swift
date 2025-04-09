@@ -89,14 +89,19 @@ class xLSTMModel {
         // Compute loss gradient
         let outputGradient = lossType.computeGradient(predicted: prediction, target: target)
         
-        // Get the last hidden state from the cell's lastOutputs
+        // Get the last hidden state
         let lastHidden = cell.lastOutputs.last ?? [Float](repeating: 0, count: cell.hiddenSize)
         
-        // Backpropagate through output layer and get gradient for hidden state
+        // Backpropagate through output layer to get hidden state gradient
         let hiddenGradient = backpropagateOutputLayer(outputGradient: outputGradient, lastHidden: lastHidden)
         
+        // Create dhSequence: zeros for all timesteps except the last one
+        let zeroDh = [Float](repeating: 0, count: cell.hiddenSize)
+        var dhSequence = [[Float]](repeating: zeroDh, count: sequence.count - 1)
+        dhSequence.append(hiddenGradient)
+        
         // Backpropagate through xLSTMCell
-        cell.backpropagate(targetSequence: [hiddenGradient], lossType: lossType)
+        cell.backpropagate(dhSequence: dhSequence)
         
         // Increment timestep for Adam
         t += 1
